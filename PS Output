@@ -1,0 +1,149 @@
+PS C:\Users\Sandip RanjanePatil> $repo = 'D:\AI Devolopers\ai-software-engineering-company'
+PS C:\Users\Sandip RanjanePatil>
+PS C:\Users\Sandip RanjanePatil> if (-not (Test-Path -LiteralPath (Join-Path $repo '.git'))) {
+>>     Write-Host 'ERROR: Is path par Git repository nahi mili.' -ForegroundColor Red
+>>     Write-Host 'Repository path check karo.'
+>>     return
+>> }
+ERROR: Is path par Git repository nahi mili.
+Repository path check karo.
+PS C:\Users\Sandip RanjanePatil>
+PS C:\Users\Sandip RanjanePatil> Set-Location -LiteralPath $repo
+Set-Location : Cannot find path 'D:\AI Devolopers\ai-software-engineering-company' because it does not exist.
+At line:1 char:1
++ Set-Location -LiteralPath $repo
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (D:\AI Devoloper...neering-company:String) [Set-Location], ItemNotFoundE
+   xception
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.SetLocationCommand
+
+PS C:\Users\Sandip RanjanePatil>
+PS C:\Users\Sandip RanjanePatil> Write-Host "`n=== PROJECT ROOT ==="
+
+=== PROJECT ROOT ===
+PS C:\Users\Sandip RanjanePatil> git rev-parse --show-toplevel
+C:/Users/Sandip RanjanePatil
+PS C:\Users\Sandip RanjanePatil>
+PS C:\Users\Sandip RanjanePatil> Write-Host "`n=== CURRENT BRANCH ==="
+
+=== CURRENT BRANCH ===
+PS C:\Users\Sandip RanjanePatil> git branch --show-current
+master
+PS C:\Users\Sandip RanjanePatil>
+PS C:\Users\Sandip RanjanePatil> Write-Host "`n=== WORKING TREE ==="
+
+=== WORKING TREE ===
+PS C:\Users\Sandip RanjanePatil> git status --short --branch
+warning: could not open directory 'Application Data/': Permission denied
+warning: could not open directory 'Cookies/': Permission denied
+warning: could not open directory 'Documents/My Music/': Permission denied
+warning: could not open directory 'Documents/My Pictures/': Permission denied
+warning: could not open directory 'Documents/My Videos/': Permission denied
+warning: could not open directory 'Local Settings/': Permission denied
+warning: could not open directory 'My Documents/': Permission denied
+warning: could not open directory 'NetHood/': Permission denied
+warning: could not open directory 'PrintHood/': Permission denied
+warning: could not open directory 'Recent/': Permission denied
+warning: could not open directory 'SendTo/': Permission denied
+warning: could not open directory 'Start Menu/': Permission denied
+warning: could not open directory 'Templates/': Permission denied
+## No commits yet on master
+?? .cache/
+?? .cagent/
+?? .claude.json
+?? .claude/
+?? .cline/
+?? .config/
+?? .continue/
+?? .copilot/
+?? .cursor/
+?? .docker/
+?? .fontconfig/
+?? .gemini/
+?? .git-for-windows-updater
+?? .gitconfig
+?? .idlerc/
+?? .imagineer_log.txt
+?? .kimi-code/
+?? .lesshst
+?? .node_repl_history
+?? .ollama/
+?? .overture/
+?? .redhat/
+?? .serenade/
+?? .thumbnails/
+?? .viminfo
+?? .vscode-shared/
+?? .vscode/
+?? AppData/
+?? Contacts/
+?? DISM
+?? Desktop/
+?? Favorites/
+?? Intellect-Media/
+?? Links/
+?? "Muse Hub/"
+?? Music/
+?? NTUSER.DAT
+?? NTUSER.DAT{3275fca1-85a8-11f0-afbb-dd351cf339d9}.TM.blf
+?? NTUSER.DAT{3275fca1-85a8-11f0-afbb-dd351cf339d9}.TMContainer00000000000000000001.regtrans-ms
+?? NTUSER.DAT{3275fca1-85a8-11f0-afbb-dd351cf339d9}.TMContainer00000000000000000002.regtrans-ms
+?? "New Corel PHOTO-PAINT 2021 Image.cpt"
+?? Pictures/
+?? PycharmProjects/
+?? "Saved Games/"
+?? Searches/
+?? "This PC - Shortcut.lnk"
+?? Videos/
+?? cd
+?? ntuser.dat.LOG1
+?? ntuser.dat.LOG2
+?? ntuser.ini
+?? py
+?? query
+?? requirements.txt
+PS C:\Users\Sandip RanjanePatil>
+PS C:\Users\Sandip RanjanePatil> Write-Host "`n=== GITHUB REMOTE ==="
+
+=== GITHUB REMOTE ===
+PS C:\Users\Sandip RanjanePatil> git remote -v
+PS C:\Users\Sandip RanjanePatil>
+PS C:\Users\Sandip RanjanePatil> Write-Host "`n=== GIT CREDENTIAL HELPER ==="
+
+=== GIT CREDENTIAL HELPER ===
+PS C:\Users\Sandip RanjanePatil> git config --show-origin --get credential.helper
+file:C:/Users/Sandip RanjanePatil/.gitconfig    !gh auth git-credential
+PS C:\Users\Sandip RanjanePatil>
+PS C:\Users\Sandip RanjanePatil> Write-Host "`n=== GITHUB CLI ==="
+
+=== GITHUB CLI ===
+PS C:\Users\Sandip RanjanePatil> if (Get-Command gh -ErrorAction SilentlyContinue) {
+>>     gh auth status
+>> } else {
+>>     Write-Host 'GitHub CLI available nahi hai.'
+>> }
+github.com
+  ✓ Logged in to github.com account prajaktaranjane80-sketch (keyring)
+  - Active account: true
+  - Git operations protocol: https
+  - Token: gho_************************************
+  - Token scopes: 'gist', 'read:org', 'repo', 'workflow'
+
+  ✓ Logged in to github.com account sandyranjane-hash (keyring)
+  - Active account: false
+  - Git operations protocol: https
+  - Token: gho_************************************
+  - Token scopes: 'gist', 'read:org', 'repo', 'workflow'
+PS C:\Users\Sandip RanjanePatil>
+PS C:\Users\Sandip RanjanePatil> Write-Host "`n=== REMOTE BRANCHES ==="
+
+=== REMOTE BRANCHES ===
+PS C:\Users\Sandip RanjanePatil> $origin = git remote get-url origin 2>$null
+PS C:\Users\Sandip RanjanePatil> if ($LASTEXITCODE -eq 0 -and $origin) {
+>>     git ls-remote --symref origin HEAD
+>>     git ls-remote --heads origin
+>> } else {
+>>     Write-Host 'origin remote abhi configured nahi hai.'
+>> }
+origin remote abhi configured nahi hai.
+PS C:\Users\Sandip RanjanePatil>
