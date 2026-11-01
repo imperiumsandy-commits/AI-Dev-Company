@@ -1,0 +1,256 @@
+Tumhari sabse important requirement hai: poori AI company ka knowledge permanent rahe, GPT ko sirf zaroori information mile aur uska generic output professional engineering quality tak improve ho.
+
+Isliye main ek aur important architectural improvement suggest karunga: Foundation ko 4 independent technical layers mein divide karna.
+1. Final architecture: AI Engineering Company OS
+Owner + Owner Advocate
+
+Business vision, technical decisions, risk aur approvals
+
+AI Engineering Company OS
+01 — Knowledge & Memory Layer
+
+Company identity, projects, 8 agent architectures, requirements, decisions, history, future work aur checkpoints.
+
+02 — Context Intelligence Layer
+
+Repository scanner, dependency mapper, knowledge retrieval, token-budget manager aur intelligent context compiler.
+
+03 — Execution & Agent Layer
+
+Independent agent loader, task management, orchestration, workflow engine, tools aur recovery.
+
+04 — Quality & Governance Layer
+
+AI code reviewer, refinement engine, independent QA, security checks, cost controls aur approval system.
+
+
+Business Analyst / PM
+
+Independent AI developer
+
+
+System Architect
+
+Independent AI developer
+
+
+Backend Developer
+
+Independent AI developer
+
+
+Frontend Developer
+
+Independent AI developer
+
+
+Database Administrator
+
+Independent AI developer
+
+
+Cybersecurity Engineer
+
+Independent AI developer
+
+
+QA / Bug Hunter
+
+Independent AI developer
+
+
+DevOps Engineer
+
+Independent AI developer
+
+
+
+PostgreSQL + Artifact Storage + Execution History
+
+Permanent company records and recoverable state
+
+
+Ismein PM company-wide planning karega, lekin har developer apne domain ka independent owner hoga. Foundation unke specialist logic ko mix nahi karegi.
+2. Final repository structure
+Yeh structure main recommend karta hoon. Yeh tumhare current v0.1 se kaafi different aur implementation-oriented hai.
+
+
+AI-Dev-Company/
+│
+├── apps/
+│   ├── api/                     # Company OS API
+│   ├── worker/                  # Background task execution
+│   └── web/                     # Future management dashboard
+│
+├── company_os/
+│   ├── registry/
+│   │   ├── company_registry.py
+│   │   ├── project_registry.py
+│   │   └── agent_registry.py
+│   │
+│   ├── knowledge/
+│   │   ├── company_intelligence.py
+│   │   ├── project_memory.py
+│   │   ├── decision_history.py
+│   │   ├── event_ledger.py
+│   │   └── checkpoints.py
+│   │
+│   ├── context/
+│   │   ├── repository_scanner.py
+│   │   ├── dependency_mapper.py
+│   │   ├── knowledge_retriever.py
+│   │   ├── context_compiler.py
+│   │   └── token_budget.py
+│   │
+│   ├── execution/
+│   │   ├── agent_loader.py
+│   │   ├── agent_executor.py
+│   │   ├── task_engine.py
+│   │   ├── workflow_engine.py
+│   │   └── recovery_engine.py
+│   │
+│   ├── intelligence/
+│   │   ├── model_gateway.py
+│   │   ├── model_router.py
+│   │   ├── code_critic.py
+│   │   └── refinement_engine.py
+│   │
+│   └── governance/
+│       ├── owner_advocate.py
+│       ├── permissions.py
+│       ├── approvals.py
+│       └── audit_engine.py
+│
+├── agents/
+│   ├── business-analyst-pm/
+│   ├── system-architect/
+│   ├── backend-developer/
+│   ├── frontend-developer/
+│   ├── database-administrator/
+│   ├── cybersecurity-engineer/
+│   ├── qa-bug-hunter/
+│   └── devops-engineer/
+│
+├── integrations/
+│   ├── providers/
+│   ├── github/
+│   └── external_tools/
+│
+├── database/
+│   ├── migrations/
+│   └── schemas/
+│
+├── evaluations/
+├── tests/
+├── infrastructure/
+└── pyproject.toml
+
+
+Har agent ke folder mein apna agent.yaml, executable logic, domain-specific tools, schemas, evaluation cases aur tests honge. Existing Markdown files optional human-readable documentation rahengi—not the active memory or execution system.
+3. GPT ko Foundation padhane ka best method
+Yeh tumhari requirement ka sabse critical part hai.
+
+Main Context Compiler ko aise design karunga:
+Reading level	Kya read hoga	GPT context usage
+L0	Company identity aur basic rules	Bahut chhota
+L1	Selected project snapshot	Relevant summary
+L2	Assigned developer ki architecture	Sirf ek specialist
+L3	Current task aur related source files	Limited code
+L4	Deep audit, dependencies aur test evidence	Sirf zaroorat par
+
+Maan lo Backend Developer ko payment gateway banana hai.
+
+Usko poori 8-agent architecture read nahi karayenge. Sirf relevant project requirements, backend contracts, payment-related files, DB tables, security rules aur related test evidence denge.
+
+Naye chat ka context automatically generate karne ke liye product mein Generate Developer Context capability hogi. Tumhe manually poori repository copy nahi karni padegi; abhi normal ChatGPT chat mein generated context packet paste karna hoga, jab tak direct authorized connection available na ho.
+4. Audit system GPT ke bina kitna kaam karega?
+Bahut saara.
+Automatic repository scanning
+No GPT required
+
+File inventory, imports, dependency relationships, code hashes, Git changes aur available tests.
+Static validation
+No GPT required
+
+Lint, types, test execution, dependency vulnerabilities aur secret checks.
+Intelligent AI audit
+Controlled AI usage
+
+Sirf changed files, critical dependencies aur high-risk decisions ka model-based review.
+Audit ledger har result ke saath commit hash, file hashes, test version, findings aur unresolved risks rakhega. File change nahi hui to uska verified audit result reuse kar sakenge, provided dependencies aur test configuration bhi unchanged ho.
+
+Is approach ke liye repository-map aur incremental analysis useful engineering patterns hain. Aider ka repository map aur LangGraph ka checkpoint/store separation is design ko inform karte hain. 
+GitHub+1
+
+5. Technology stack — meri final initial choice
+Component	Choice
+Backend	Python + FastAPI
+Main database	PostgreSQL
+Agent workflow	LangGraph, controlled use
+Persistent execution state	PostgreSQL checkpointer/store
+Model gateway	Initially provider adapters; later LiteLLM
+Repository analysis	Python parser + dependency graph
+Quality assurance	Pytest + static analysis + security scans
+GitHub integration	GitHub API and Actions
+Artifact storage	Object storage, not Git for runtime data
+
+LangGraph ke checkpointer aur long-term store alag purposes serve karte hain: ek current workflow execution ko save karta hai, doosra sessions ke across persistent knowledge rakhta hai. 
+GitHub+1
+
+
+LiteLLM ko later adopt kar sakte hain. Iske budgets database-backed hote hain, isliye ise sirf ek API wrapper samajhkar integrate nahi karenge. 
+liteLLM+1
+
+
+Main PostgreSQL ko central source of truth rakhunga. Managed hosting choose karte waqt backup aur recovery policy bhi acceptance requirements mein hogi; free database plans par automatic backups assume nahi karenge. 
+Supabase Docs+1
+
+6. Isko ground par lane ka development plan
+Meri recommendation hai ki 30–40 files ek saath likhne ki jagah working vertical slices banayein.
+1. F01 — Company Registry
+   
+   Company, projects, eight specialists aur configuration ka machine-readable registry.
+2. F02 — Repository Intelligence
+   
+   Source code scanner, dependencies, file hashes aur architecture index.
+3. F03 — Persistent Memory
+   
+   PostgreSQL records, decisions, events, history aur checkpoints.
+4. F04 — Context Compiler
+   
+   Company, project, specialist aur task-specific context generation with token budgets.
+5. F05 — Incremental Audit
+   
+   Changed-file analysis, cached test evidence, resumable audit ledger.
+6. F06 — Agent Runtime
+   
+   Eight independent agent definitions, loaders, permissions aur executable workflows.
+7. F07 — Quality Engine
+   
+   Model review, coding improvement, retesting aur independent verification.
+8. F08 — Business Analyst / PM activation
+   
+   Complete company-wide planning, task delegation, project progress aur permanent backlog.
+Hum pehle F01–F05 ko ek actual working project par test karenge. Uske baad 8 developers ko ek-ek karke activate karenge.
+
+7. Foundation ke liye 10/10 success criteria
+Yeh kuch aise tests honge jo main mandatory rakhunga:
+- Naya ChatGPT session limited context mein company ko samajh sake.
+- Backend agent ko frontend ya doosre confidential project ka unnecessary context na mile.
+- Basic GPT/Gemini output ko measurable tests aur project standards se improve kiya ja sake.
+- GPT limit khatam hone par saved tasks aur audit wahi se resume hon.
+- Bina badlav wali files har baar deep audit na karwani padein.
+- Kisi bhi agent ka work history aur decisions traceable hon.
+- Sab 8 agents independently operate karein, lekin shared project state maintain karein.
+- Owner ke approval ke bina high-risk changes release na hon.
+Ek important difference: yeh criteria hamara engineering target hai; current system ko abhi in tests ko pass karna hai. Hum bina evidence ke 10/10 declare nahi karenge.
+Mera final decision
+Bhai, main tumhe ek giant FOUNDATION.md dekar kaam khatam nahi karunga. Main final architecture isi tarah freeze karne ka recommend karta hoon:
+1. Company OS ka machine-readable architecture aur executable foundation.
+2. Context Compiler aur incremental audit pehle, taaki GPT ki limitations architecture mein hi handle ho jaayen.
+3. Persistent database aur checkpoints, taaki project ki history kabhi sirf chat par depend na ho.
+4. Eight independent specialist agents, har ek ka dedicated executable structure.
+5. Quality and Refinement Engine, taaki generic model output ko final product na maana jaye.
+Aur tumhare fixed development method ke hisaab se main har batch ka complete code isi chat mein dunga; tum GitHub ke browser editor se add/replace karoge. PowerShell sirf chhote patches aur corrections ke liye rakhenge.
+
+Meri nazar mein yahi ab tak ka best, commercially scalable aur ground par implement karne layak plan hai. Isse zyada complex architecture abhi banana unnecessary hoga; pehle F01–F05 ke working implementation se ise prove karna sabse samajhdaar engineering decision hai.
