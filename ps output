@@ -1,0 +1,121 @@
+===== FOUNDATION PLAN HEADINGS =====
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Select-String -Path ".\Foundation plan" -Pattern '^\s*(#{1,4}\s|F[0-9]+[\s:.-])' |
+>> Select-Object -First 70
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== F01 DETAILS =====" -ForegroundColor Cyan
+
+===== F01 DETAILS =====
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Select-String -Path ".\Foundation plan" -Pattern '(?i)\bF01\b|Company Registry' -Context 3,8 |
+>> Select-Object -First 50
+
+  Foundation plan:207:
+  Foundation plan:208:6. Isko ground par lane ka development plan
+  Foundation plan:209:Meri recommendation hai ki 30–40 files ek saath likhne ki jagah working vertical slices banayein.
+> Foundation plan:210:1. F01 — Company Registry
+  Foundation plan:211:
+  Foundation plan:212:   Company, projects, eight specialists aur configuration ka machine-readable registry.
+  Foundation plan:213:2. F02 — Repository Intelligence
+  Foundation plan:214:
+  Foundation plan:215:   Source code scanner, dependencies, file hashes aur architecture index.
+  Foundation plan:216:3. F03 — Persistent Memory
+  Foundation plan:217:
+  Foundation plan:218:   PostgreSQL records, decisions, events, history aur checkpoints.
+  Foundation plan:231:8. F08 — Business Analyst / PM activation
+  Foundation plan:232:
+  Foundation plan:233:   Complete company-wide planning, task delegation, project progress aur permanent backlog.
+> Foundation plan:234:Hum pehle F01–F05 ko ek actual working project par test karenge. Uske baad 8 developers ko ek-ek karke activate karenge.
+  Foundation plan:235:
+  Foundation plan:236:7. Foundation ke liye 10/10 success criteria
+  Foundation plan:237:Yeh kuch aise tests honge jo main mandatory rakhunga:
+  Foundation plan:238:- Naya ChatGPT session limited context mein company ko samajh sake.
+  Foundation plan:239:- Backend agent ko frontend ya doosre confidential project ka unnecessary context na mile.
+  Foundation plan:240:- Basic GPT/Gemini output ko measurable tests aur project standards se improve kiya ja sake.
+  Foundation plan:241:- GPT limit khatam hone par saved tasks aur audit wahi se resume hon.
+  Foundation plan:242:- Bina badlav wali files har baar deep audit na karwani padein.
+  Foundation plan:253:5. Quality and Refinement Engine, taaki generic model output ko final product na maana jaye.
+  Foundation plan:254:Aur tumhare fixed development method ke hisaab se main har batch ka complete code isi chat mein dunga; tum GitHub ke browser editor
+se add/replace karoge. PowerShell sirf chhote patches aur corrections ke liye rakhenge.
+  Foundation plan:255:
+> Foundation plan:256:Meri nazar mein yahi ab tak ka best, commercially scalable aur ground par implement karne layak plan hai. Isse zyada complex
+architecture abhi banana unnecessary hoga; pehle F01–F05 ke working implementation se ise prove karna sabse samajhdaar engineering decision hai.
+  Foundation plan:257:
+  Foundation plan:258:
+  Foundation plan:259:
+  Foundation plan:260:
+  Foundation plan:261:
+  Foundation plan:262:
+  Foundation plan:263:dusara chat
+  Foundation plan:264:
+
+
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== EXISTING PYTHON ARCHITECTURE =====" -ForegroundColor Cyan
+
+===== EXISTING PYTHON ARCHITECTURE =====
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Get-ChildItem ".\ai_dev_company" -Filter "*.py" |
+>> ForEach-Object {
+>>     Write-Host "`nFILE: $($_.Name)" -ForegroundColor Yellow
+>>     Select-String -Path $_.FullName -Pattern '^\s*(class |def |    def )'
+>> }
+
+FILE: agent_loader.py
+
+ai_dev_company\agent_loader.py:33:def locate_agent(root: Path, agent_id: str) -> Path | None:
+ai_dev_company\agent_loader.py:43:def load_agent(root: Path, agent_id: str) -> dict[str, Any]:
+ai_dev_company\agent_loader.py:70:def list_agents(root: Path) -> list[dict[str, Any]]:
+ai_dev_company\agent_loader.py:84:def build_agent_context(
+
+FILE: cli.py
+ai_dev_company\cli.py:14:def emit(value: Any) -> None:
+ai_dev_company\cli.py:18:def git_state(root: Path) -> dict[str, Any]:
+ai_dev_company\cli.py:19:    def run(args: list[str]) -> str:
+ai_dev_company\cli.py:31:def make_parser() -> argparse.ArgumentParser:
+ai_dev_company\cli.py:87:def main() -> int:
+
+FILE: memory_store.py
+ai_dev_company\memory_store.py:82:def utc_now() -> str:
+ai_dev_company\memory_store.py:86:def to_json(value: Any) -> str:
+ai_dev_company\memory_store.py:90:def from_json(value: str, fallback: Any = None) -> Any:
+ai_dev_company\memory_store.py:97:class MemoryStore:
+ai_dev_company\memory_store.py:100:    def __init__(self, root: Optional[Path] = None) -> None:
+ai_dev_company\memory_store.py:107:    def _find_root() -> Path:
+ai_dev_company\memory_store.py:133:    def _connection(self) -> Iterator[sqlite3.Connection]:
+ai_dev_company\memory_store.py:148:    def initialize(self) -> None:
+ai_dev_company\memory_store.py:233:    def _set_meta(conn: sqlite3.Connection, key: str, value: Any) -> None:
+ai_dev_company\memory_store.py:244:    def _insert_event(
+ai_dev_company\memory_store.py:259:    def record_event(
+ai_dev_company\memory_store.py:273:    def _validate_scope(scope: str) -> None:
+ai_dev_company\memory_store.py:279:    def add_memory(
+ai_dev_company\memory_store.py:315:    def _memory_dict(row: sqlite3.Row) -> dict[str, Any]:
+ai_dev_company\memory_store.py:320:    def list_memories(
+ai_dev_company\memory_store.py:341:    def _task_dict(row: sqlite3.Row) -> dict[str, Any]:
+ai_dev_company\memory_store.py:347:    def add_task(
+ai_dev_company\memory_store.py:398:    def list_tasks(
+ai_dev_company\memory_store.py:425:    def update_task(
+ai_dev_company\memory_store.py:470:    def list_events(
+ai_dev_company\memory_store.py:492:    def summary(self) -> dict[str, Any]:
+ai_dev_company\memory_store.py:534:    def save_checkpoint(self, name: str, note: str = "") -> dict[str, Any]:
+ai_dev_company\memory_store.py:556:    def latest_checkpoint(self) -> Optional[dict[str, Any]]:
+
+FILE: __init__.py
+
+FILE: __main__.py
+
+
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== TEST FUNCTIONS =====" -ForegroundColor Cyan
+
+===== TEST FUNCTIONS =====
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Select-String -Path ".\tests\*.py" -Pattern '^\s*def test_'
+
+tests\test_active_memory.py:17:    def test_bootstrap_seeds_project_vision(self):
+tests\test_active_memory.py:23:    def test_memory_survives_new_runtime_instance(self):
+tests\test_active_memory.py:34:    def test_tasks_and_valid_state_transitions_persist(self):
+tests\test_active_memory.py:50:    def test_invalid_state_transition_is_rejected(self):
+tests\test_active_memory.py:55:    def test_checkpoint_and_events_are_saved(self):
+tests\test_active_memory.py:71:    def test_agent_memory_scope_is_validated(self):
+
