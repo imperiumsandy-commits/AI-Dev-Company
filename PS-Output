@@ -1,36 +1,27 @@
-STATUS  TITLE                                               WORKFLOW           BRANCH  EVENT  ID           ELAPSED  AGE
-✓       fix(f01): remove duplicate misplaced registry test  AI-Dev-Company CI  main    push   42241907502  16s      about 1 minute ago
-X       Create test_company_registry.py                     AI-Dev-Company CI  main    push   42240594162  17s      about 9 minutes ago
-✓       Create python-ci.yml                                AI-Dev-Company CI  main    push   42238069317  17s      about 25 minutes ago
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> $runId = gh run list -R imperiumsandy-commits/AI-Dev-Company --limit 1 --json databaseId --jq '.[0].databaseId'
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== LATEST RUN DETAILS =====" -ForegroundColor Cyan
-
-===== LATEST RUN DETAILS =====
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> gh run view $runId -R imperiumsandy-commits/AI-Dev-Company
-
-✓ main AI-Dev-Company CI · 42241907502
-Triggered via push about 1 minute ago
-
-JOBS
-✓ Python 3.12 Tests in 12s (ID 127974065992)
-
-ANNOTATIONS
-- "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
-Python 3.12 Tests: .github#1
-
-
-ARTIFACTS
-python-test-results
-
-For more information about the job, try: gh run view --job=127974065992
-View this run on GitHub: https://github.com/imperiumsandy-commits/AI-Dev-Company/actions/runs/42241907502
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== FAILURE LOGS =====" -ForegroundColor Cyan
-
 ===== FAILURE LOGS =====
 PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
 PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> gh run view $runId -R imperiumsandy-commits/AI-Dev-Company --log-failed
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> git fetch origin
+remote: Enumerating objects: 13, done.
+remote: Counting objects: 100% (13/13), done.
+remote: Compressing objects: 100% (7/7), done.
+remote: Total 8 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+Unpacking objects: 100% (8/8), 2.69 KiB | 95.00 KiB/s, done.
+From https://github.com/imperiumsandy-commits/AI-Dev-Company
+   12db375..77fb14f  main       -> origin/main
 PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> git show origin/main:PS-Output |
+>> Select-String -Pattern '(?i)error|failed|passed|warning|test_company_registry|Traceback|success|complete' -Context 2,3 |
+>> Select-Object -Last 80
+
+  STATUS  TITLE                                               WORKFLOW           BRANCH  EVENT  ID           ELAPSED  AGE
+  Γ£ô       fix(f01): remove duplicate misplaced registry test  AI-Dev-Company CI  main    push   42241907502  16s      about 1 minute ago
+> X       Create test_company_registry.py                     AI-Dev-Company CI  main    push   42240594162  17s      about 9 minutes ago
+  Γ£ô       Create python-ci.yml                                AI-Dev-Company CI  main    push   42238069317  17s      about 25 minutes ago
+  PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+  PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> $runId = gh run list -R imperiumsandy-commits/AI-Dev-Company --limit 1 --json databaseId --jq
+'.[0].databaseId'
+  ===== FAILURE LOGS =====
+  PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+> PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> gh run view $runId -R imperiumsandy-commits/AI-Dev-Company --log-failed
+  PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
