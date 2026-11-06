@@ -1,0 +1,108 @@
+"""Canonical initial specialist catalog for AI-Dev-Company F01 bootstrap."""
+
+DEFAULT_AGENTS = [
+    {
+        "agent_id": "agent_business_analyst_pm",
+        "slug": "business-analyst-pm",
+        "display_name": "Business Analyst / PM",
+        "domain": "business-analysis-and-project-management",
+        "definition_path": "agents/business-analyst-pm/agent.yaml",
+        "capabilities": [
+            "requirements_analysis",
+            "planning",
+            "backlog_management",
+            "stakeholder_alignment",
+        ],
+    },
+    {
+        "agent_id": "agent_system_architect",
+        "slug": "system-architect",
+        "display_name": "System Architect",
+        "domain": "software-architecture-and-technical-design",
+        "definition_path": "agents/system-architect/agent.yaml",
+        "capabilities": [
+            "architecture_design",
+            "interface_contracts",
+            "technology_assessment",
+            "architecture_review",
+        ],
+    },
+    {
+        "agent_id": "agent_backend_developer",
+        "slug": "backend-developer",
+        "display_name": "Backend Developer",
+        "domain": "backend-engineering",
+        "definition_path": "agents/backend-developer/agent.yaml",
+        "capabilities": [
+            "api_implementation",
+            "service_logic",
+            "integration",
+            "backend_testing",
+        ],
+    },
+    {
+        "agent_id": "agent_frontend_developer",
+        "slug": "frontend-developer",
+        "display_name": "Frontend Developer",
+        "domain": "frontend-engineering",
+        "definition_path": "agents/frontend-developer/agent.yaml",
+        "capabilities": [
+            "ui_implementation",
+            "accessibility",
+            "client_state",
+            "frontend_testing",
+        ],
+    },
+    {
+        "agent_id": "agent_database_administrator",
+        "slug": "database-administrator",
+        "display_name": "Database Administrator",
+        "domain": "database-engineering-and-operations",
+        "definition_path": "agents/database-administrator/agent.yaml",
+        "capabilities": [
+            "schema_design",
+            "migrations",
+            "query_optimization",
+            "backup_recovery",
+        ],
+    },
+    {
+        "agent_id": "agent_cybersecurity_engineer",
+        "slug": "cybersecurity-engineer",
+        "display_name": "Cybersecurity Engineer",
+        "domain": "application-security-and-threat-analysis",
+        "definition_path": "agents/cybersecurity-engineer/agent.yaml",
+        "capabilities": [
+            "threat_modeling",
+            "secure_design_review",
+            "dependency_risk",
+            "security_testing",
+        ],
+    },
+    {
+        "agent_id": "agent_qa_bug_hunter",
+        "slug": "qa-bug-hunter",
+        "display_name": "QA / Bug Hunter",
+        "domain": "quality-assurance-and-defect-analysis",
+        "definition_path": "agents/qa-bug-hunter/agent.yaml",
+        "capabilities": [
+            "test_strategy",
+            "defect_reproduction",
+            "regression_testing",
+            "release_verification",
+        ],
+    },
+    {
+        "agent_id": "agent_devops_engineer",
+        "slug": "devops-engineer",
+        "display_name": "DevOps Engineer",
+        "domain": "platform-and-delivery-engineering",
+        "definition_path": "agents/devops-engineer/agent.yaml",
+        "capabilities": [
+            "ci_cd",
+            "deployment_automation",
+            "infrastructure_operations",
+            "runtime_observability",
+        ],
+    },
+]
