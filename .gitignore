@@ -1,7 +1,9 @@
-﻿.ai-dev-company/
+﻿# Local company runtime state and databases
+.ai-dev-company/
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
 venv/
 .env
+
