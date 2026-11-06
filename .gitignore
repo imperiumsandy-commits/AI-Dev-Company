@@ -1,4 +1,3 @@
-﻿# Local company runtime state and databases
 .ai-dev-company/
 __pycache__/
 *.py[cod]
