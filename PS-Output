@@ -1,72 +1,29 @@
-=== F01 PRE-IMPLEMENTATION AUDIT ===
+===== SYNC COMPLETE =====
+## development...origin/main
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> # Load downloaded F01 patch into clipboard
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> $patchPath = Join-Path $env:USERPROFILE "Downloads\F01-Company-Registry.patch"
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Set-Clipboard -Value (Get-Content -LiteralPath $patchPath -Raw -Encoding UTF8)
+Get-Content : Cannot find path 'C:\Users\Sandip RanjanePatil\Downloads\F01-Company-Registry.patch' because it does not exist.
+At line:1 char:23
++ ... oard -Value (Get-Content -LiteralPath $patchPath -Raw -Encoding UTF8)
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Users\Sandip...-Registry.patch:String) [Get-Content], ItemNotFoundException
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetContentCommand
 
---- memory_store.py ---
-FUNCTION utc_now()
-FUNCTION to_json(value: Any)
-FUNCTION from_json(value: str, fallback: Any=None)
-CLASS MemoryStore
-  __init__(self, root: Optional[Path]=None)
-  _find_root()
-  _connection(self)
-  initialize(self)
-  _set_meta(conn: sqlite3.Connection, key: str, value: Any)
-  _insert_event(conn: sqlite3.Connection, actor: str, event_type: str, entity_type: str, entity_id: str, payload: Any)
-  record_event(self, actor: str, event_type: str, entity_type: str, entity_id: str, payload: Any)
-  _validate_scope(scope: str)
-  add_memory(self, scope: str, kind: str, title: str, content: str, source: str='operator', tags: Optional[Sequence[str]]=None)
-  _memory_dict(row: sqlite3.Row)
-  list_memories(self, scope: Optional[str]=None, limit: int=20)
-  _task_dict(row: sqlite3.Row)
-  add_task(self, title: str, description: str='', agent_id: Optional[str]=None, priority: str='normal', acceptance_criteria: Optional[Sequence[str]]=None, depends_on: Optional[Sequence[str]]=None, next_action: str='')
-  list_tasks(self, agent_id: Optional[str]=None, status: Optional[str]=None, limit: int=100)
-  update_task(self, task_id: str, status: Optional[str]=None, next_action: Optional[str]=None, note: Optional[str]=None)
-  list_events(self, limit: int=20, actor: Optional[str]=None)
-  summary(self)
-  save_checkpoint(self, name: str, note: str='')
-  latest_checkpoint(self)
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> # Apply using our GPT-GIT Bridge
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> .\tools\GPT-GIT.ps1 apply
+Clipboard empty. Copy GPT unified diff first.
+At C:\Users\Sandip RanjanePatil\AI-Dev-Company\tools\GPT-GIT.ps1:253 char:13
++             throw "Clipboard empty. Copy GPT unified diff first."
++             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Clipboard empty...ied diff first.:String) [], RuntimeException
+    + FullyQualifiedErrorId : Clipboard empty. Copy GPT unified diff first.
 
---- agent_loader.py ---
-FUNCTION locate_agent(root: Path, agent_id: str)
-FUNCTION load_agent(root: Path, agent_id: str)
-FUNCTION list_agents(root: Path)
-FUNCTION build_agent_context(root: Path, agent_id: str, task: str='')
-
---- cli.py ---
-FUNCTION emit(value: Any)
-FUNCTION git_state(root: Path)
-FUNCTION make_parser()
-FUNCTION main()
-
-=== SQLITE SCHEMA ===
-DATABASE: .ai-dev-company\project_memory.sqlite3
-
-TABLE: checkpoints
-COLUMNS: ['checkpoint_id', 'name', 'payload_json', 'created_at']
-
-TABLE: events
-COLUMNS: ['event_id', 'occurred_at', 'actor', 'event_type', 'entity_type', 'entity_id', 'payload_json']
-
-TABLE: memories
-COLUMNS: ['memory_id', 'scope', 'kind', 'title', 'content', 'source', 'tags_json', 'created_at', 'updated_at', 'archived']
-
-TABLE: project_meta
-COLUMNS: ['key', 'value_json', 'updated_at']
-
-TABLE: tasks
-COLUMNS: ['task_id', 'title', 'description', 'agent_id', 'status', 'priority', 'acceptance_json', 'depends_on_json', 'next_action', 'created_at', 'updated_at']
-
-=== TESTS ===
-tests\test_active_memory.py: test_bootstrap_seeds_project_vision
-tests\test_active_memory.py: test_memory_survives_new_runtime_instance
-tests\test_active_memory.py: test_tasks_and_valid_state_transitions_persist
-tests\test_active_memory.py: test_invalid_state_transition_is_rejected
-tests\test_active_memory.py: test_checkpoint_and_events_are_saved
-tests\test_active_memory.py: test_agent_memory_scope_is_validated
-
-=== CURRENT GIT ===
-BRANCH: development
-STATUS:
-## development...origin/main [behind 3]
-
-
-AUDIT COMPLETE
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> # Run complete project tests
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> python -m pytest -q
+......                                                                                                                                               [100%]
+6 passed in 0.44s
