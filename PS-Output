@@ -1,85 +1,72 @@
-===== IMPLEMENTATION AUDIT =====
+=== F01 PRE-IMPLEMENTATION AUDIT ===
 
-MODULE: agent_loader.py
-FUNCTION: locate_agent
-FUNCTION: load_agent
-FUNCTION: list_agents
-FUNCTION: build_agent_context
+--- memory_store.py ---
+FUNCTION utc_now()
+FUNCTION to_json(value: Any)
+FUNCTION from_json(value: str, fallback: Any=None)
+CLASS MemoryStore
+  __init__(self, root: Optional[Path]=None)
+  _find_root()
+  _connection(self)
+  initialize(self)
+  _set_meta(conn: sqlite3.Connection, key: str, value: Any)
+  _insert_event(conn: sqlite3.Connection, actor: str, event_type: str, entity_type: str, entity_id: str, payload: Any)
+  record_event(self, actor: str, event_type: str, entity_type: str, entity_id: str, payload: Any)
+  _validate_scope(scope: str)
+  add_memory(self, scope: str, kind: str, title: str, content: str, source: str='operator', tags: Optional[Sequence[str]]=None)
+  _memory_dict(row: sqlite3.Row)
+  list_memories(self, scope: Optional[str]=None, limit: int=20)
+  _task_dict(row: sqlite3.Row)
+  add_task(self, title: str, description: str='', agent_id: Optional[str]=None, priority: str='normal', acceptance_criteria: Optional[Sequence[str]]=None, depends_on: Optional[Sequence[str]]=None, next_action: str='')
+  list_tasks(self, agent_id: Optional[str]=None, status: Optional[str]=None, limit: int=100)
+  update_task(self, task_id: str, status: Optional[str]=None, next_action: Optional[str]=None, note: Optional[str]=None)
+  list_events(self, limit: int=20, actor: Optional[str]=None)
+  summary(self)
+  save_checkpoint(self, name: str, note: str='')
+  latest_checkpoint(self)
 
-MODULE: memory_store.py
-FUNCTION: utc_now
-FUNCTION: to_json
-FUNCTION: from_json
-CLASS: MemoryStore
- METHOD: __init__
- METHOD: _find_root
- METHOD: _connection
- METHOD: initialize
- METHOD: _set_meta
- METHOD: _insert_event
- METHOD: record_event
- METHOD: _validate_scope
- METHOD: add_memory
- METHOD: _memory_dict
- METHOD: list_memories
- METHOD: _task_dict
- METHOD: add_task
- METHOD: list_tasks
- METHOD: update_task
- METHOD: list_events
- METHOD: summary
- METHOD: save_checkpoint
- METHOD: latest_checkpoint
+--- agent_loader.py ---
+FUNCTION locate_agent(root: Path, agent_id: str)
+FUNCTION load_agent(root: Path, agent_id: str)
+FUNCTION list_agents(root: Path)
+FUNCTION build_agent_context(root: Path, agent_id: str, task: str='')
 
-MODULE: cli.py
-FUNCTION: emit
-FUNCTION: git_state
-FUNCTION: make_parser
-FUNCTION: main
+--- cli.py ---
+FUNCTION emit(value: Any)
+FUNCTION git_state(root: Path)
+FUNCTION make_parser()
+FUNCTION main()
 
-===== DATABASE AUDIT =====
+=== SQLITE SCHEMA ===
 DATABASE: .ai-dev-company\project_memory.sqlite3
-SQLite: 3.45.3
-Journal: ('wal',)
-Foreign keys: (0,)
-
-TABLE: project_meta
-COLUMNS: ['key', 'value_json', 'updated_at']
-FOREIGN KEYS: []
-INDEXES: ['sqlite_autoindex_project_meta_1']
-
-TABLE: memories
-COLUMNS: ['memory_id', 'scope', 'kind', 'title', 'content', 'source', 'tags_json', 'created_at', 'updated_at', 'archived']
-FOREIGN KEYS: []
-INDEXES: ['idx_memories_scope_time']
-
-TABLE: tasks
-COLUMNS: ['task_id', 'title', 'description', 'agent_id', 'status', 'priority', 'acceptance_json', 'depends_on_json', 'next_action', 'created_at', 'updated_at']
-FOREIGN KEYS: []
-INDEXES: ['idx_tasks_agent_status', 'sqlite_autoindex_tasks_1']
-
-TABLE: events
-COLUMNS: ['event_id', 'occurred_at', 'actor', 'event_type', 'entity_type', 'entity_id', 'payload_json']
-FOREIGN KEYS: []
-INDEXES: ['idx_events_time']
 
 TABLE: checkpoints
 COLUMNS: ['checkpoint_id', 'name', 'payload_json', 'created_at']
-FOREIGN KEYS: []
-INDEXES: []
 
-===== TEST INVENTORY =====
-tests\test_active_memory.py : test_bootstrap_seeds_project_vision
-tests\test_active_memory.py : test_memory_survives_new_runtime_instance
-tests\test_active_memory.py : test_tasks_and_valid_state_transitions_persist
-tests\test_active_memory.py : test_invalid_state_transition_is_rejected
-tests\test_active_memory.py : test_checkpoint_and_events_are_saved
-tests\test_active_memory.py : test_agent_memory_scope_is_validated
+TABLE: events
+COLUMNS: ['event_id', 'occurred_at', 'actor', 'event_type', 'entity_type', 'entity_id', 'payload_json']
 
-===== DEPENDENCY MANIFESTS =====
-pyproject.toml NOT PRESENT
-requirements.txt NOT PRESENT
-requirements-dev.txt NOT PRESENT
-pytest.ini NOT PRESENT
+TABLE: memories
+COLUMNS: ['memory_id', 'scope', 'kind', 'title', 'content', 'source', 'tags_json', 'created_at', 'updated_at', 'archived']
 
-IMPLEMENTATION AUDIT COMPLETE
+TABLE: project_meta
+COLUMNS: ['key', 'value_json', 'updated_at']
+
+TABLE: tasks
+COLUMNS: ['task_id', 'title', 'description', 'agent_id', 'status', 'priority', 'acceptance_json', 'depends_on_json', 'next_action', 'created_at', 'updated_at']
+
+=== TESTS ===
+tests\test_active_memory.py: test_bootstrap_seeds_project_vision
+tests\test_active_memory.py: test_memory_survives_new_runtime_instance
+tests\test_active_memory.py: test_tasks_and_valid_state_transitions_persist
+tests\test_active_memory.py: test_invalid_state_transition_is_rejected
+tests\test_active_memory.py: test_checkpoint_and_events_are_saved
+tests\test_active_memory.py: test_agent_memory_scope_is_validated
+
+=== CURRENT GIT ===
+BRANCH: development
+STATUS:
+## development...origin/main [behind 3]
+
+
+AUDIT COMPLETE
