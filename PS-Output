@@ -1,29 +1,36 @@
-===== SYNC COMPLETE =====
-## development...origin/main
+STATUS  TITLE                                               WORKFLOW           BRANCH  EVENT  ID           ELAPSED  AGE
+✓       fix(f01): remove duplicate misplaced registry test  AI-Dev-Company CI  main    push   42241907502  16s      about 1 minute ago
+X       Create test_company_registry.py                     AI-Dev-Company CI  main    push   42240594162  17s      about 9 minutes ago
+✓       Create python-ci.yml                                AI-Dev-Company CI  main    push   42238069317  17s      about 25 minutes ago
 PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> # Load downloaded F01 patch into clipboard
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> $patchPath = Join-Path $env:USERPROFILE "Downloads\F01-Company-Registry.patch"
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> $runId = gh run list -R imperiumsandy-commits/AI-Dev-Company --limit 1 --json databaseId --jq '.[0].databaseId'
 PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Set-Clipboard -Value (Get-Content -LiteralPath $patchPath -Raw -Encoding UTF8)
-Get-Content : Cannot find path 'C:\Users\Sandip RanjanePatil\Downloads\F01-Company-Registry.patch' because it does not exist.
-At line:1 char:23
-+ ... oard -Value (Get-Content -LiteralPath $patchPath -Raw -Encoding UTF8)
-+                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : ObjectNotFound: (C:\Users\Sandip...-Registry.patch:String) [Get-Content], ItemNotFoundException
-    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetContentCommand
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== LATEST RUN DETAILS =====" -ForegroundColor Cyan
 
+===== LATEST RUN DETAILS =====
 PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> # Apply using our GPT-GIT Bridge
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> .\tools\GPT-GIT.ps1 apply
-Clipboard empty. Copy GPT unified diff first.
-At C:\Users\Sandip RanjanePatil\AI-Dev-Company\tools\GPT-GIT.ps1:253 char:13
-+             throw "Clipboard empty. Copy GPT unified diff first."
-+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : OperationStopped: (Clipboard empty...ied diff first.:String) [], RuntimeException
-    + FullyQualifiedErrorId : Clipboard empty. Copy GPT unified diff first.
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> gh run view $runId -R imperiumsandy-commits/AI-Dev-Company
 
+✓ main AI-Dev-Company CI · 42241907502
+Triggered via push about 1 minute ago
+
+JOBS
+✓ Python 3.12 Tests in 12s (ID 127974065992)
+
+ANNOTATIONS
+- "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
+Python 3.12 Tests: .github#1
+
+
+ARTIFACTS
+python-test-results
+
+For more information about the job, try: gh run view --job=127974065992
+View this run on GitHub: https://github.com/imperiumsandy-commits/AI-Dev-Company/actions/runs/42241907502
 PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> # Run complete project tests
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> python -m pytest -q
-......                                                                                                                                               [100%]
-6 passed in 0.44s
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== FAILURE LOGS =====" -ForegroundColor Cyan
+
+===== FAILURE LOGS =====
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> gh run view $runId -R imperiumsandy-commits/AI-Dev-Company --log-failed
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
