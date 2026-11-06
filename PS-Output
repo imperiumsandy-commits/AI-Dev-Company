@@ -1,0 +1,136 @@
+
+===== SOURCE ARCHITECTURE =====
+
+FILE: ai_dev_company\__init__.py | Lines: 2
+
+FILE: ai_dev_company\__main__.py | Lines: 4
+IMPORT: from .cli import main
+
+FILE: ai_dev_company\agent_loader.py | Lines: 117
+IMPORT: from __future__ import annotations
+IMPORT: from pathlib import Path
+IMPORT: from typing import Any
+IMPORT: from .memory_store import AGENT_IDS, MemoryStore
+FUNCTION: locate_agent | Line 33
+FUNCTION: load_agent | Line 43
+FUNCTION: list_agents | Line 70
+FUNCTION: build_agent_context | Line 84
+
+FILE: ai_dev_company\cli.py | Lines: 166
+IMPORT: from __future__ import annotations
+IMPORT: import argparse
+IMPORT: import json
+IMPORT: import subprocess
+IMPORT: from pathlib import Path
+IMPORT: from typing import Any
+IMPORT: from .agent_loader import build_agent_context, list_agents
+IMPORT: from .memory_store import AGENT_IDS, TASK_STATUSES, MemoryStore
+FUNCTION: emit | Line 14
+FUNCTION: git_state | Line 18
+FUNCTION: make_parser | Line 31
+FUNCTION: main | Line 87
+
+FILE: ai_dev_company\memory_store.py | Lines: 565
+IMPORT: from __future__ import annotations
+IMPORT: import json
+IMPORT: import os
+IMPORT: import sqlite3
+IMPORT: import subprocess
+IMPORT: import uuid
+IMPORT: from contextlib import contextmanager
+IMPORT: from datetime import datetime, timezone
+IMPORT: from pathlib import Path
+IMPORT: from typing import Any, Iterator, Optional, Sequence
+FUNCTION: utc_now | Line 82
+FUNCTION: to_json | Line 86
+FUNCTION: from_json | Line 90
+CLASS: MemoryStore | Line 97
+  METHOD: __init__ | Line 100
+  METHOD: _find_root | Line 107
+  METHOD: _connection | Line 133
+  METHOD: initialize | Line 148
+  METHOD: _set_meta | Line 233
+  METHOD: _insert_event | Line 244
+  METHOD: record_event | Line 259
+  METHOD: _validate_scope | Line 273
+  METHOD: add_memory | Line 279
+  METHOD: _memory_dict | Line 315
+  METHOD: list_memories | Line 320
+  METHOD: _task_dict | Line 341
+  METHOD: add_task | Line 347
+  METHOD: list_tasks | Line 398
+  METHOD: update_task | Line 425
+  METHOD: list_events | Line 470
+  METHOD: summary | Line 492
+  METHOD: save_checkpoint | Line 534
+  METHOD: latest_checkpoint | Line 556
+
+===== SQLITE DATABASE SCHEMA =====
+
+DATABASE: .ai-dev-company\project_memory.sqlite3
+
+TABLE: project_meta
+CREATE TABLE project_meta (
+                    key TEXT PRIMARY KEY,
+                    value_json TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+COLUMNS: ['key', 'value_json', 'updated_at']
+
+TABLE: memories
+CREATE TABLE memories (
+                    memory_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    scope TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    tags_json TEXT NOT NULL DEFAULT '[]',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    archived INTEGER NOT NULL DEFAULT 0
+                )
+COLUMNS: ['memory_id', 'scope', 'kind', 'title', 'content', 'source', 'tags_json', 'created_at', 'updated_at', 'archived']
+
+TABLE: tasks
+CREATE TABLE tasks (
+                    task_id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    description TEXT NOT NULL DEFAULT '',
+                    agent_id TEXT,
+                    status TEXT NOT NULL,
+                    priority TEXT NOT NULL,
+                    acceptance_json TEXT NOT NULL DEFAULT '[]',
+                    depends_on_json TEXT NOT NULL DEFAULT '[]',
+                    next_action TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+COLUMNS: ['task_id', 'title', 'description', 'agent_id', 'status', 'priority', 'acceptance_json', 'depends_on_json', 'next_action', 'created_at', 'updated_at']
+
+TABLE: events
+CREATE TABLE events (
+                    event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    occurred_at TEXT NOT NULL,
+                    actor TEXT NOT NULL,
+                    event_type TEXT NOT NULL,
+                    entity_type TEXT NOT NULL,
+                    entity_id TEXT NOT NULL,
+                    payload_json TEXT NOT NULL
+                )
+COLUMNS: ['event_id', 'occurred_at', 'actor', 'event_type', 'entity_type', 'entity_id', 'payload_json']
+
+TABLE: checkpoints
+CREATE TABLE checkpoints (
+                    checkpoint_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+COLUMNS: ['checkpoint_id', 'name', 'payload_json', 'created_at']
+
+===== TEST INVENTORY =====
+
+===== DEPENDENCY FILES =====
+
+SOURCE AUDIT INVENTORY COMPLETE
