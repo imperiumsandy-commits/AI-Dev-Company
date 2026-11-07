@@ -1,51 +1,135 @@
-
-===== VERIFY FILE LOCATIONS =====
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> git fetch origin
+remote: Enumerating objects: 5, done.
+remote: Counting objects: 100% (5/5), done.
+remote: Compressing objects: 100% (3/3), done.
+remote: Total 3 (delta 2), reused 0 (delta 0), pack-reused 0 (from 0)
+Unpacking objects: 100% (3/3), 1.60 KiB | 28.00 KiB/s, done.
+From https://github.com/imperiumsandy-commits/AI-Dev-Company
+   32410f6..55ab79d  main       -> origin/main
 PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> git ls-tree -r --name-only origin/main -- tests/test_company_registry.py company_os/registry/tests
-company_os/registry/tests/conftest.py
-tests/test_company_registry.py
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== LATEST CI RUN =====" -ForegroundColor Cyan
+
+===== LATEST CI RUN =====
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> gh run list -R imperiumsandy-commits/AI-Dev-Company --limit 3
+STATUS  TITLE             WORKFLOW           BRANCH  EVENT  ID           ELAPSED  AGE
+✓       Update PS-Output  AI-Dev-Company CI  main    push   42249743123  19s      about 13 hours ago
+✓       Update PS-Output  AI-Dev-Company CI  main    push   42242621779  14s      about 14 hours ago
+✓       Update PS-Output  AI-Dev-Company CI  main    push   42242211425  17s      about 14 hours ago
 PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== LATEST GITHUB ACTIONS =====" -ForegroundColor Cyan
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== LATEST RUN DETAILS =====" -ForegroundColor Cyan
 
-===== LATEST GITHUB ACTIONS =====
+===== LATEST RUN DETAILS =====
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> gh run view -R imperiumsandy-commits/AI-Dev-Company --json name,status,conclusion,headSha,url,jobs
+? Select a workflow run ✓ Update PS-Output, AI-Dev-Company CI [main] 13h42m47s ago
+{
+  "conclusion": "success",
+  "headSha": "55ab79d534f87aabf52d2a83a352287217e85ea3",
+  "jobs": [
+    {
+      "completedAt": "2026-11-06T16:09:59Z",
+      "conclusion": "success",
+      "databaseId": 128001361600,
+      "name": "Python 3.12 Tests",
+      "startedAt": "2026-11-06T16:09:44Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-11-06T16:09:46Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-11-06T16:09:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-06T16:09:47Z",
+          "conclusion": "success",
+          "name": "Checkout repository",
+          "number": 2,
+          "startedAt": "2026-11-06T16:09:46Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-06T16:09:47Z",
+          "conclusion": "success",
+          "name": "Setup Python",
+          "number": 3,
+          "startedAt": "2026-11-06T16:09:47Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-06T16:09:53Z",
+          "conclusion": "success",
+          "name": "Install test runner",
+          "number": 4,
+          "startedAt": "2026-11-06T16:09:47Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-06T16:09:53Z",
+          "conclusion": "success",
+          "name": "Compile Python source",
+          "number": 5,
+          "startedAt": "2026-11-06T16:09:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-06T16:09:54Z",
+          "conclusion": "success",
+          "name": "Run automated tests",
+          "number": 6,
+          "startedAt": "2026-11-06T16:09:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-06T16:09:56Z",
+          "conclusion": "success",
+          "name": "Save test report",
+          "number": 7,
+          "startedAt": "2026-11-06T16:09:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-06T16:09:56Z",
+          "conclusion": "success",
+          "name": "Post Setup Python",
+          "number": 13,
+          "startedAt": "2026-11-06T16:09:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-06T16:09:56Z",
+          "conclusion": "success",
+          "name": "Post Checkout repository",
+          "number": 14,
+          "startedAt": "2026-11-06T16:09:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-06T16:09:56Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 15,
+          "startedAt": "2026-11-06T16:09:56Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/imperiumsandy-commits/AI-Dev-Company/actions/runs/42249743123/job/128001361600"
+    }
+  ],
+  "name": "AI-Dev-Company CI",
+  "status": "completed",
+  "url": "https://github.com/imperiumsandy-commits/AI-Dev-Company/actions/runs/42249743123"
+}
 PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> gh run list -R imperiumsandy-commits/AI-Dev-Company --limit 5
-STATUS  TITLE                                               WORKFLOW           BRANCH  EVENT  ID           ELAPSED  AGE
-✓       Update PS-Output                                    AI-Dev-Company CI  main    push   42242621779  14s      about 44 minutes ago
-✓       Update PS-Output                                    AI-Dev-Company CI  main    push   42242211425  17s      about 46 minutes ago
-✓       fix(f01): remove duplicate misplaced registry test  AI-Dev-Company CI  main    push   42241907502  16s      about 48 minutes ago
-X       Create test_company_registry.py                     AI-Dev-Company CI  main    push   42240594162  17s      about 57 minutes ago
-✓       Create python-ci.yml                                AI-Dev-Company CI  main    push   42238069317  17s      about 1 hour ago
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== F01 FILE LOCATIONS =====" -ForegroundColor Cyan
+
+===== F01 FILE LOCATIONS =====
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> $tree = @(git ls-tree -r --name-only origin/main)
 PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> $id = gh run list -R imperiumsandy-commits/AI-Dev-Company --limit 1 --json databaseId --jq '.[0].databaseId'
-
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== LATEST RUN RESULT =====" -ForegroundColor Cyan
-
-===== LATEST RUN RESULT =====
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> gh run view $id -R imperiumsandy-commits/AI-Dev-Company
-
-✓ main AI-Dev-Company CI · 42242621779
-Triggered via push about 44 minutes ago
-
-JOBS
-✓ Python 3.12 Tests in 9s (ID 127976524551)
-
-ANNOTATIONS
-- "The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
-Python 3.12 Tests: .github#1
-
-
-ARTIFACTS
-python-test-results
-
-For more information about the job, try: gh run view --job=127976524551
-View this run on GitHub: https://github.com/imperiumsandy-commits/AI-Dev-Company/actions/runs/42242621779
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== FAILURE DETAILS =====" -ForegroundColor Cyan
-
-===== FAILURE DETAILS =====
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> gh run view $id -R imperiumsandy-commits/AI-Dev-Company --log-failed
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "Registry core: $($tree -contains 'company_os/registry/core.py')"
+Registry core: True
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "Correct F01 tests: $($tree -contains 'tests/test_company_registry.py')"
+Correct F01 tests: True
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "Incorrect duplicate: $($tree -contains 'company_os/registry/tests/test_company_registry.py')"
+Incorrect duplicate: False
