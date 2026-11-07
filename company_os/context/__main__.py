@@ -32,11 +32,7 @@ INDEX_SCHEMA_VERSION = "1.1"
 
 
 def _atomic_write_json(output: Path, payload: dict[str, Any]) -> None:
-    """Write a JSON report atomically in the destination directory.
-
-    A temporary sibling file ensures readers never observe a partially
-    written index if serialization or filesystem operations fail.
-    """
+    """Write JSON atomically so readers never see a partial index."""
 
     serialized = json.dumps(
         payload,
@@ -70,12 +66,12 @@ def _atomic_write_json(output: Path, payload: dict[str, Any]) -> None:
             try:
                 temporary_path.unlink(missing_ok=True)
             except OSError:
-                # Preserve the original write/replace exception.
+                # Do not hide the original write/replace failure.
                 pass
 
 
 def _resolve_output_path(root: Path, requested_output: str) -> Path:
-    """Resolve output path without depending on the caller's working folder."""
+    """Resolve output paths relative to the selected repository root."""
 
     output = Path(requested_output).expanduser()
 
@@ -85,11 +81,41 @@ def _resolve_output_path(root: Path, requested_output: str) -> Path:
     return output.resolve()
 
 
+def _validate_changed_files(
+    snapshot,
+    impact_report,
+) -> None:
+    """Reject paths that the current repository snapshot did not index.
+
+    Impact analysis must not silently report zero affected files for a typo,
+    missing file, excluded path, binary file, or unsupported file.
+    """
+
+    indexed_paths = {
+        record.path
+        for record in snapshot.files
+    }
+
+    requested_paths = set(impact_report.changed_files)
+    unavailable_paths = sorted(requested_paths - indexed_paths)
+
+    if unavailable_paths:
+        paths_text = ", ".join(unavailable_paths)
+
+        raise ValueError(
+            "Changed file(s) are not present in the repository snapshot: "
+            f"{paths_text}. The file may be missing, excluded by the scan "
+            "policy, unsupported, binary, non-UTF-8, or larger than the "
+            "configured file-size limit. Impact analysis requires each "
+            "changed file to be present in the current repository snapshot."
+        )
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Build a deterministic, content-free repository intelligence "
-            "index and optionally calculate Python dependency impact."
+            "Build a deterministic repository intelligence index and "
+            "optionally calculate local Python dependency impact."
         )
     )
 
@@ -122,8 +148,9 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="REPO_PATH",
         help=(
             "Repository-relative changed file to analyze. Repeat this option "
-            "for multiple files. Impact analysis currently follows local "
-            "Python import edges in the current snapshot."
+            "for multiple files. Every supplied path must be present in the "
+            "current repository snapshot. Impact analysis follows local "
+            "Python import edges only."
         ),
     )
 
@@ -138,6 +165,11 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         root = Path(args.root).expanduser().resolve()
+
+        if not root.exists() or not root.is_dir():
+            raise ValueError(
+                f"Repository root is not an existing directory: {root}"
+            )
 
         policy = ScanPolicy(
             max_file_bytes=args.max_file_bytes,
@@ -154,13 +186,24 @@ def main(argv: list[str] | None = None) -> int:
                 args.changed,
             )
 
-        output = _resolve_output_path(root, args.output)
+            _validate_changed_files(
+                snapshot,
+                impact_report,
+            )
 
-        # Prevent an output path from overwriting a source file that was
-        # included in the snapshot being indexed.
+        output = _resolve_output_path(
+            root,
+            args.output,
+        )
+
+        # Never overwrite a source file that was indexed.
         if output.is_relative_to(root):
             output_relative = output.relative_to(root).as_posix()
-            indexed_paths = {record.path for record in snapshot.files}
+
+            indexed_paths = {
+                record.path
+                for record in snapshot.files
+            }
 
             if output_relative in indexed_paths:
                 raise ValueError(
@@ -185,7 +228,10 @@ def main(argv: list[str] | None = None) -> int:
             exist_ok=True,
         )
 
-        _atomic_write_json(output, payload)
+        _atomic_write_json(
+            output,
+            payload,
+        )
 
     except (OSError, ValueError) as exc:
         print(
