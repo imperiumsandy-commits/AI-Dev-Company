@@ -1,17 +1,4 @@
-"""Command-line entry point for repository intelligence.
-
-Examples:
-    python -m company_os.context
-
-    python -m company_os.context \
-        --root . \
-        --changed company_os/registry/core.py
-
-    python -m company_os.context \
-        --root . \
-        --changed company_os/registry/core.py \
-        --changed company_os/registry/catalog.py
-"""
+"""Command-line entry point for repository intelligence."""
 
 from __future__ import annotations
 
@@ -32,7 +19,7 @@ INDEX_SCHEMA_VERSION = "1.1"
 
 
 def _atomic_write_json(output: Path, payload: dict[str, Any]) -> None:
-    """Write JSON atomically so readers never see a partial index."""
+    """Write JSON atomically to prevent partially written index files."""
 
     serialized = json.dumps(
         payload,
@@ -66,12 +53,11 @@ def _atomic_write_json(output: Path, payload: dict[str, Any]) -> None:
             try:
                 temporary_path.unlink(missing_ok=True)
             except OSError:
-                # Do not hide the original write/replace failure.
                 pass
 
 
 def _resolve_output_path(root: Path, requested_output: str) -> Path:
-    """Resolve output paths relative to the selected repository root."""
+    """Resolve output paths relative to the repository root."""
 
     output = Path(requested_output).expanduser()
 
@@ -81,14 +67,11 @@ def _resolve_output_path(root: Path, requested_output: str) -> Path:
     return output.resolve()
 
 
-def _validate_changed_files(
-    snapshot,
-    impact_report,
-) -> None:
-    """Reject paths that the current repository snapshot did not index.
+def _validate_changed_files(snapshot: Any, impact_report: Any) -> None:
+    """Reject changed paths absent from the scanned repository snapshot.
 
-    Impact analysis must not silently report zero affected files for a typo,
-    missing file, excluded path, binary file, or unsupported file.
+    This prevents a typo, excluded file, unsupported file, or missing file
+    from being reported as a successful zero-impact analysis.
     """
 
     indexed_paths = {
@@ -104,10 +87,10 @@ def _validate_changed_files(
 
         raise ValueError(
             "Changed file(s) are not present in the repository snapshot: "
-            f"{paths_text}. The file may be missing, excluded by the scan "
+            f"{paths_text}. A file may be missing, excluded by the scan "
             "policy, unsupported, binary, non-UTF-8, or larger than the "
-            "configured file-size limit. Impact analysis requires each "
-            "changed file to be present in the current repository snapshot."
+            "configured file-size limit. Impact analysis requires every "
+            "changed file to be present in the current snapshot."
         )
 
 
@@ -148,9 +131,8 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="REPO_PATH",
         help=(
             "Repository-relative changed file to analyze. Repeat this option "
-            "for multiple files. Every supplied path must be present in the "
-            "current repository snapshot. Impact analysis follows local "
-            "Python import edges only."
+            "for multiple files. Every supplied file must be present in the "
+            "current repository snapshot."
         ),
     )
 
@@ -158,7 +140,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Build the repository index and return a process exit code."""
+    """Build a repository index and return a process exit code."""
 
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -196,7 +178,7 @@ def main(argv: list[str] | None = None) -> int:
             args.output,
         )
 
-        # Never overwrite a source file that was indexed.
+        # Prevent the generated index from overwriting an indexed source file.
         if output.is_relative_to(root):
             output_relative = output.relative_to(root).as_posix()
 
@@ -228,10 +210,7 @@ def main(argv: list[str] | None = None) -> int:
             exist_ok=True,
         )
 
-        _atomic_write_json(
-            output,
-            payload,
-        )
+        _atomic_write_json(output, payload)
 
     except (OSError, ValueError) as exc:
         print(
