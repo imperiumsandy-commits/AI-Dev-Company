@@ -1,4 +1,17 @@
-"""Command-line entry point for repository intelligence."""
+"""Command-line entry point for repository intelligence.
+
+Examples:
+    python -m company_os.context
+
+    python -m company_os.context \
+        --root . \
+        --changed company_os/registry/core.py
+
+    python -m company_os.context \
+        --root . \
+        --git-base origin/main \
+        --git-head HEAD
+"""
 
 from __future__ import annotations
 
@@ -12,14 +25,15 @@ from pathlib import Path
 from typing import Any
 
 from .dependency_mapper import map_python_dependencies
+from .git_changes import detect_git_changes
 from .impact_analyzer import analyze_change_impact
 from .repository_scanner import ScanPolicy, scan_repository
 
-INDEX_SCHEMA_VERSION = "1.1"
+INDEX_SCHEMA_VERSION = "1.2"
 
 
 def _atomic_write_json(output: Path, payload: dict[str, Any]) -> None:
-    """Write JSON atomically to prevent partially written index files."""
+    """Write JSON atomically so readers never see a partial index."""
 
     serialized = json.dumps(
         payload,
@@ -68,11 +82,7 @@ def _resolve_output_path(root: Path, requested_output: str) -> Path:
 
 
 def _validate_changed_files(snapshot: Any, impact_report: Any) -> None:
-    """Reject changed paths absent from the scanned repository snapshot.
-
-    This prevents a typo, excluded file, unsupported file, or missing file
-    from being reported as a successful zero-impact analysis.
-    """
+    """Reject manually requested changed paths absent from the snapshot."""
 
     indexed_paths = {
         record.path
@@ -90,22 +100,22 @@ def _validate_changed_files(snapshot: Any, impact_report: Any) -> None:
             f"{paths_text}. A file may be missing, excluded by the scan "
             "policy, unsupported, binary, non-UTF-8, or larger than the "
             "configured file-size limit. Impact analysis requires every "
-            "changed file to be present in the current snapshot."
+            "manually supplied changed file to be present in the snapshot."
         )
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Build a deterministic repository intelligence index and "
-            "optionally calculate local Python dependency impact."
+            "Build a deterministic repository intelligence index, "
+            "dependency graph, and optional change-impact report."
         )
     )
 
     parser.add_argument(
         "--root",
         default=".",
-        help="Repository root directory (default: current directory).",
+        help="Git repository root (default: current directory).",
     )
 
     parser.add_argument(
@@ -130,17 +140,33 @@ def _build_parser() -> argparse.ArgumentParser:
         default=[],
         metavar="REPO_PATH",
         help=(
-            "Repository-relative changed file to analyze. Repeat this option "
-            "for multiple files. Every supplied file must be present in the "
-            "current repository snapshot."
+            "Manually specify a repository-relative changed file. "
+            "Repeat this option for multiple files."
         ),
+    )
+
+    parser.add_argument(
+        "--git-base",
+        default=None,
+        metavar="GIT_REF",
+        help=(
+            "Compare committed changes from the merge-base of GIT_REF "
+            "and --git-head. Example: origin/main."
+        ),
+    )
+
+    parser.add_argument(
+        "--git-head",
+        default="HEAD",
+        metavar="GIT_REF",
+        help="Target commit or ref for Git comparison (default: HEAD).",
     )
 
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Build a repository index and return a process exit code."""
+    """Build repository intelligence and return a process exit code."""
 
     parser = _build_parser()
     args = parser.parse_args(argv)
@@ -160,12 +186,59 @@ def main(argv: list[str] | None = None) -> int:
         snapshot = scan_repository(root, policy)
         dependencies = map_python_dependencies(root, snapshot)
 
+        indexed_paths = {
+            record.path
+            for record in snapshot.files
+        }
+
+        git_report = None
+
+        if args.git_base:
+            git_report = detect_git_changes(
+                root,
+                base_ref=args.git_base,
+                head_ref=args.git_head,
+            )
+
+        # Manually supplied paths are strict: invalid or excluded paths fail.
+        impact_paths = list(args.changed)
+
+        # Git changes are broader than the scanner's supported text inventory.
+        # Only currently indexed paths are sent to the Python impact analyzer.
+        skipped_git_paths: list[dict[str, str]] = []
+
+        if git_report is not None:
+            for path in git_report.impact_candidate_paths:
+                if path in indexed_paths:
+                    impact_paths.append(path)
+                else:
+                    skipped_git_paths.append({
+                        "path": path,
+                        "reason": (
+                            "The changed path is not in the current repository "
+                            "snapshot, so it cannot enter the static "
+                            "dependency impact graph."
+                        ),
+                    })
+
+            # Deleted files and rename sources require the dependency graph
+            # from the base commit, not the current repository snapshot.
+            for path in git_report.removed_paths:
+                skipped_git_paths.append({
+                    "path": path,
+                    "reason": (
+                        "This path was removed or renamed. Historical impact "
+                        "requires a dependency graph reconstructed from the "
+                        "base commit; the current snapshot cannot provide it."
+                    ),
+                })
+
         impact_report = None
 
-        if args.changed:
+        if impact_paths:
             impact_report = analyze_change_impact(
                 dependencies,
-                args.changed,
+                impact_paths,
             )
 
             _validate_changed_files(
@@ -173,19 +246,38 @@ def main(argv: list[str] | None = None) -> int:
                 impact_report,
             )
 
+        if impact_report is not None:
+            impact_status = {
+                "status": "computed",
+                "reason": None,
+            }
+        elif git_report is not None and git_report.change_count == 0:
+            impact_status = {
+                "status": "no_changes",
+                "reason": "The selected Git comparison contains no changes.",
+            }
+        elif git_report is not None:
+            impact_status = {
+                "status": "not_computed",
+                "reason": (
+                    "No changed current-snapshot paths were eligible for "
+                    "static impact analysis. See change_impact_skipped_paths."
+                ),
+            }
+        else:
+            impact_status = {
+                "status": "not_requested",
+                "reason": None,
+            }
+
         output = _resolve_output_path(
             root,
             args.output,
         )
 
-        # Prevent the generated index from overwriting an indexed source file.
+        # Never overwrite a source file included in the repository snapshot.
         if output.is_relative_to(root):
             output_relative = output.relative_to(root).as_posix()
-
-            indexed_paths = {
-                record.path
-                for record in snapshot.files
-            }
 
             if output_relative in indexed_paths:
                 raise ValueError(
@@ -198,11 +290,18 @@ def main(argv: list[str] | None = None) -> int:
             "snapshot_sha256": snapshot.snapshot_sha256,
             "repository": snapshot.to_dict(),
             "python_dependencies": dependencies.to_dict(),
+            "git_changes": (
+                git_report.to_dict()
+                if git_report is not None
+                else None
+            ),
             "change_impact": (
                 impact_report.to_dict()
                 if impact_report is not None
                 else None
             ),
+            "change_impact_status": impact_status,
+            "change_impact_skipped_paths": skipped_git_paths,
         }
 
         output.parent.mkdir(
@@ -210,7 +309,10 @@ def main(argv: list[str] | None = None) -> int:
             exist_ok=True,
         )
 
-        _atomic_write_json(output, payload)
+        _atomic_write_json(
+            output,
+            payload,
+        )
 
     except (OSError, ValueError) as exc:
         print(
@@ -228,13 +330,30 @@ def main(argv: list[str] | None = None) -> int:
         f"parse issues: {len(dependencies.parse_issues)}"
     )
 
+    if git_report is not None:
+        print(
+            f"Git changes: {git_report.change_count} | "
+            f"added: {git_report.status_counts['added']} | "
+            f"modified: {git_report.status_counts['modified']} | "
+            f"deleted: {git_report.status_counts['deleted']} | "
+            f"renamed: {git_report.status_counts['renamed']}"
+        )
+
     if impact_report is None:
-        print("Change impact: not requested")
+        print(
+            f"Change impact: {impact_status['status']}"
+        )
     else:
         print(
             f"Change impact: {impact_report.impacted_count} impacted files | "
             f"{impact_report.direct_count} direct | "
             f"{impact_report.transitive_count} transitive"
+        )
+
+    if skipped_git_paths:
+        print(
+            f"Git paths not analyzed for current-snapshot impact: "
+            f"{len(skipped_git_paths)}"
         )
 
     return 0
