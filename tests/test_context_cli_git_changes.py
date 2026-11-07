@@ -170,15 +170,10 @@ def test_cli_reports_deleted_file_without_fake_current_impact(
     skipped = payload["change_impact_skipped_paths"]
 
     assert any(
-        item["path"] == "pkg/legacy.py"
-        and "Historical impact" in item["reason"]
-        or (
-            item["path"] == "pkg/legacy.py"
-            and "Historical impact" not in item["reason"]
-            and "base commit" in item["reason"]
-        )
-        for item in skipped
-    )
+    item["path"] == "pkg/legacy.py"
+    and "base commit" in item["reason"]
+    for item in skipped
+)
 
 
 def test_cli_rejects_invalid_git_base_without_writing_index(
