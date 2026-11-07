@@ -2,57 +2,11 @@ PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> git fetch origin
 remote: Enumerating objects: 5, done.
 remote: Counting objects: 100% (5/5), done.
 remote: Compressing objects: 100% (3/3), done.
-remote: Total 3 (delta 2), reused 0 (delta 0), pack-reused 0 (from 0)
-Unpacking objects: 100% (3/3), 1.60 KiB | 28.00 KiB/s, done.
+remote: Total 3 (delta 1), reused 0 (delta 0), pack-reused 0 (from 0)
+Unpacking objects: 100% (3/3), 2.02 KiB | 79.00 KiB/s, done.
 From https://github.com/imperiumsandy-commits/AI-Dev-Company
-   32410f6..55ab79d  main       -> origin/main
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== LATEST CI RUN =====" -ForegroundColor Cyan
-
-===== LATEST CI RUN =====
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> gh run list -R imperiumsandy-commits/AI-Dev-Company --limit 3
-STATUS  TITLE             WORKFLOW           BRANCH  EVENT  ID           ELAPSED  AGE
-✓       Update PS-Output  AI-Dev-Company CI  main    push   42249743123  19s      about 13 hours ago
-✓       Update PS-Output  AI-Dev-Company CI  main    push   42242621779  14s      about 14 hours ago
-✓       Update PS-Output  AI-Dev-Company CI  main    push   42242211425  17s      about 14 hours ago
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company>
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> Write-Host "`n===== LATEST RUN DETAILS =====" -ForegroundColor Cyan
-
-===== LATEST RUN DETAILS =====
-PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> gh run view -R imperiumsandy-commits/AI-Dev-Company --json name,status,conclusion,headSha,url,jobs
-? Select a workflow run ✓ Update PS-Output, AI-Dev-Company CI [main] 13h42m47s ago
-{
-  "conclusion": "success",
-  "headSha": "55ab79d534f87aabf52d2a83a352287217e85ea3",
-  "jobs": [
-    {
-      "completedAt": "2026-11-06T16:09:59Z",
-      "conclusion": "success",
-      "databaseId": 128001361600,
-      "name": "Python 3.12 Tests",
-      "startedAt": "2026-11-06T16:09:44Z",
-      "status": "completed",
-      "steps": [
-        {
-          "completedAt": "2026-11-06T16:09:46Z",
-          "conclusion": "success",
-          "name": "Set up job",
-          "number": 1,
-          "startedAt": "2026-11-06T16:09:45Z",
-          "status": "completed"
-        },
-        {
-          "completedAt": "2026-11-06T16:09:47Z",
-          "conclusion": "success",
-          "name": "Checkout repository",
-          "number": 2,
-          "startedAt": "2026-11-06T16:09:46Z",
-          "status": "completed"
-        },
-        {
-          "completedAt": "2026-11-06T16:09:47Z",
-          "conclusion": "success",
-          "name": "Setup Python",
+   55ab79d..4b7a704  main       -> origin/main
+PS C:\Users\Sandip RanjanePatil\AI-Dev-Company> git show origin/main:PS-Output | Select-Object -Last 80
           "number": 3,
           "startedAt": "2026-11-06T16:09:47Z",
           "status": "completed"
