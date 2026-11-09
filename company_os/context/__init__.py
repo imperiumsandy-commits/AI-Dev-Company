@@ -10,6 +10,11 @@ from .git_changes import (
     GitChangeReport,
     detect_git_changes,
 )
+from .git_snapshot import (
+    GitRevisionDependencySnapshot,
+    GitRevisionSnapshotError,
+    load_git_revision_dependencies,
+)
 from .impact_analyzer import (
     ImpactedFile,
     ImpactReport,
@@ -26,12 +31,15 @@ __all__ = [
     "GitChange",
     "GitChangeError",
     "GitChangeReport",
+    "GitRevisionDependencySnapshot",
+    "GitRevisionSnapshotError",
     "ImpactedFile",
     "ImpactReport",
     "RepositorySnapshot",
     "ScanPolicy",
     "analyze_change_impact",
     "detect_git_changes",
+    "load_git_revision_dependencies",
     "map_python_dependencies",
     "scan_repository",
 ]
