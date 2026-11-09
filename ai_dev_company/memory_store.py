@@ -1,4 +1,4 @@
-﻿"""Persistent project memory shared by all eight specialist agents.
+"""Persistent project memory shared by all eight specialist agents.
 
 This is local SQLite persistence, not a remote/cloud database.
 No third-party Python package is required.
@@ -63,11 +63,14 @@ SEED_MEMORIES = (
         "retry and budget limits. Never claim tests passed without running them."
     ),
     (
-        "project", "decision", "GPT to PowerShell to Git workflow",
-        "The operator wants complete source code and exact PowerShell commands "
-        "in chat. PowerShell writes files, tests run, and only explicitly selected "
-        "files are committed and pushed to the writable origin fork. Never push "
-        "to upstream. Never use git add . as the default."
+        "project", "policy", "GitHub-first source delivery policy",
+        "The GitHub repository is the source of truth for project code. "
+        "The assistant provides complete repository-relative file contents "
+        "directly in chat. The repository owner applies changes manually "
+        "through the GitHub browser interface. The assistant does not write, "
+        "commit, or push to GitHub. Local PC and PowerShell workflows are not "
+        "required for normal project additions. Command-output snapshots are "
+        "historical evidence, not implementation modules."
     ),
     (
         "project", "future_work", "Active memory and agent runtime",
