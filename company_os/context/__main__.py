@@ -1,17 +1,4 @@
-"""Command-line entry point for repository intelligence.
-
-Examples:
-    python -m company_os.context
-
-    python -m company_os.context \
-        --root . \
-        --changed company_os/registry/core.py
-
-    python -m company_os.context \
-        --root . \
-        --git-base origin/main \
-        --git-head HEAD
-"""
+"""Command-line entry point for repository intelligence."""
 
 from __future__ import annotations
 
@@ -26,10 +13,14 @@ from typing import Any
 
 from .dependency_mapper import map_python_dependencies
 from .git_changes import detect_git_changes
+from .git_snapshot import (
+    GitRevisionSnapshotError,
+    load_git_revision_dependencies,
+)
 from .impact_analyzer import analyze_change_impact
 from .repository_scanner import ScanPolicy, scan_repository
 
-INDEX_SCHEMA_VERSION = "1.2"
+INDEX_SCHEMA_VERSION = "1.3"
 
 
 def _atomic_write_json(output: Path, payload: dict[str, Any]) -> None:
@@ -108,7 +99,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Build a deterministic repository intelligence index, "
-            "dependency graph, and optional change-impact report."
+            "dependency graph, and current/historical impact reports."
         )
     )
 
@@ -193,82 +184,200 @@ def main(argv: list[str] | None = None) -> int:
 
         git_report = None
 
-        if args.git_base:
+        if args.git_base is not None:
             git_report = detect_git_changes(
                 root,
                 base_ref=args.git_base,
                 head_ref=args.git_head,
             )
 
-        # Manually supplied paths are strict: invalid or excluded paths fail.
-        impact_paths = list(args.changed)
-
-        # Git changes are broader than the scanner's supported text inventory.
-        # Only currently indexed paths are sent to the Python impact analyzer.
-        skipped_git_paths: list[dict[str, str]] = []
+        # Current-revision analysis.
+        current_impact_paths = list(args.changed)
+        skipped_paths: list[dict[str, str]] = []
 
         if git_report is not None:
             for path in git_report.impact_candidate_paths:
                 if path in indexed_paths:
-                    impact_paths.append(path)
+                    current_impact_paths.append(path)
                 else:
-                    skipped_git_paths.append({
+                    skipped_paths.append({
                         "path": path,
                         "reason": (
                             "The changed path is not in the current repository "
-                            "snapshot, so it cannot enter the static "
-                            "dependency impact graph."
+                            "snapshot and cannot enter the static dependency graph."
                         ),
                     })
 
-            # Deleted files and rename sources require the dependency graph
-            # from the base commit, not the current repository snapshot.
-            for path in git_report.removed_paths:
-                skipped_git_paths.append({
-                    "path": path,
-                    "reason": (
-                        "This path was removed or renamed. Historical impact "
-                        "requires a dependency graph reconstructed from the "
-                        "base commit; the current snapshot cannot provide it."
-                    ),
-                })
+        current_impact = None
 
-        impact_report = None
-
-        if impact_paths:
-            impact_report = analyze_change_impact(
+        if current_impact_paths:
+            current_impact = analyze_change_impact(
                 dependencies,
-                impact_paths,
+                current_impact_paths,
             )
 
+            # This validation applies to manually supplied and current Git paths.
             _validate_changed_files(
                 snapshot,
-                impact_report,
+                current_impact,
             )
 
-        if impact_report is not None:
-            impact_status = {
+        if current_impact is not None:
+            current_status = {
                 "status": "computed",
                 "reason": None,
             }
         elif git_report is not None and git_report.change_count == 0:
-            impact_status = {
+            current_status = {
                 "status": "no_changes",
                 "reason": "The selected Git comparison contains no changes.",
             }
         elif git_report is not None:
-            impact_status = {
+            current_status = {
                 "status": "not_computed",
                 "reason": (
-                    "No changed current-snapshot paths were eligible for "
-                    "static impact analysis. See change_impact_skipped_paths."
+                    "No current-snapshot paths were eligible for static "
+                    "impact analysis."
                 ),
             }
         else:
-            impact_status = {
+            current_status = {
                 "status": "not_requested",
                 "reason": None,
             }
+
+        # Historical analysis: deleted and renamed source paths are analysed
+        # against the dependency graph reconstructed from the merge-base.
+        historical_impact = None
+
+        historical_status = {
+            "status": "not_requested",
+            "reason": None,
+        }
+
+        if git_report is not None:
+            removed_paths = git_report.removed_paths
+
+            historical_python_paths = [
+                path
+                for path in removed_paths
+                if path.endswith(".py")
+            ]
+
+            non_python_removed_paths = [
+                path
+                for path in removed_paths
+                if not path.endswith(".py")
+            ]
+
+            for path in non_python_removed_paths:
+                skipped_paths.append({
+                    "path": path,
+                    "reason": (
+                        "Historical dependency impact currently supports "
+                        "Python source files only."
+                    ),
+                })
+
+            if not removed_paths:
+                historical_status = {
+                    "status": "no_removed_paths",
+                    "reason": None,
+                }
+
+            elif not historical_python_paths:
+                historical_status = {
+                    "status": "not_applicable",
+                    "reason": (
+                        "The comparison contains no deleted or renamed "
+                        "Python source files."
+                    ),
+                }
+
+            else:
+                try:
+                    historical_snapshot = load_git_revision_dependencies(
+                        root,
+                        revision=git_report.merge_base,
+                        policy=policy,
+                    )
+
+                except GitRevisionSnapshotError as exc:
+                    historical_status = {
+                        "status": "unavailable",
+                        "reason": str(exc),
+                    }
+
+                    for path in historical_python_paths:
+                        skipped_paths.append({
+                            "path": path,
+                            "reason": (
+                                "Historical dependency snapshot could not "
+                                f"be reconstructed: {exc}"
+                            ),
+                        })
+
+                else:
+                    historical_indexed_paths = (
+                        historical_snapshot.indexed_paths
+                    )
+
+                    available_historical_paths = sorted(
+                        set(historical_python_paths)
+                        & historical_indexed_paths
+                    )
+
+                    unavailable_historical_paths = sorted(
+                        set(historical_python_paths)
+                        - historical_indexed_paths
+                    )
+
+                    for path in unavailable_historical_paths:
+                        skipped_paths.append({
+                            "path": path,
+                            "reason": (
+                                "The deleted or renamed Python file is not "
+                                "indexable in the merge-base snapshot. It may "
+                                "be absent, excluded, a symlink, binary, "
+                                "non-UTF-8, or oversized."
+                            ),
+                        })
+
+                    if available_historical_paths:
+                        historical_report = analyze_change_impact(
+                            historical_snapshot.dependencies,
+                            available_historical_paths,
+                        )
+
+                        historical_impact = {
+                            "purpose": (
+                                "Dependents of deleted/renamed files in "
+                                "the historical merge-base revision."
+                            ),
+                            "base_commit": git_report.merge_base,
+                            "dependency_snapshot": (
+                                historical_snapshot.to_dict()
+                            ),
+                            "impact_report": historical_report.to_dict(),
+                        }
+
+                        historical_status = {
+                            "status": (
+                                "computed_with_skips"
+                                if unavailable_historical_paths
+                                else "computed"
+                            ),
+                            "reason": None,
+                        }
+
+                    else:
+                        historical_status = {
+                            "status": "not_computed",
+                            "reason": (
+                                "No deleted or renamed Python source file "
+                                "could be indexed in the merge-base snapshot."
+                            ),
+                        }
 
         output = _resolve_output_path(
             root,
@@ -296,12 +405,17 @@ def main(argv: list[str] | None = None) -> int:
                 else None
             ),
             "change_impact": (
-                impact_report.to_dict()
-                if impact_report is not None
+                current_impact.to_dict()
+                if current_impact is not None
                 else None
             ),
-            "change_impact_status": impact_status,
-            "change_impact_skipped_paths": skipped_git_paths,
+            "change_impact_status": current_status,
+            "historical_change_impact": historical_impact,
+            "historical_change_impact_status": historical_status,
+            "change_impact_skipped_paths": sorted(
+                skipped_paths,
+                key=lambda item: (item["path"], item["reason"]),
+            ),
         }
 
         output.parent.mkdir(
@@ -339,21 +453,30 @@ def main(argv: list[str] | None = None) -> int:
             f"renamed: {git_report.status_counts['renamed']}"
         )
 
-    if impact_report is None:
+    if current_impact is not None:
         print(
-            f"Change impact: {impact_status['status']}"
+            f"Current impact: {current_impact.impacted_count} impacted files | "
+            f"{current_impact.direct_count} direct | "
+            f"{current_impact.transitive_count} transitive"
+        )
+    else:
+        print(f"Current impact: {current_status['status']}")
+
+    if historical_impact is not None:
+        historical_report = historical_impact["impact_report"]
+
+        print(
+            f"Historical impact: {historical_report['impacted_count']} "
+            f"impacted files from base revision"
         )
     else:
         print(
-            f"Change impact: {impact_report.impacted_count} impacted files | "
-            f"{impact_report.direct_count} direct | "
-            f"{impact_report.transitive_count} transitive"
+            f"Historical impact: {historical_status['status']}"
         )
 
-    if skipped_git_paths:
+    if skipped_paths:
         print(
-            f"Git paths not analyzed for current-snapshot impact: "
-            f"{len(skipped_git_paths)}"
+            f"Git paths not analyzed: {len(skipped_paths)}"
         )
 
     return 0
