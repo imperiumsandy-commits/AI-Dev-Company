@@ -18,9 +18,10 @@ from .git_snapshot import (
     load_git_revision_dependencies,
 )
 from .impact_analyzer import analyze_change_impact
+from .incremental_scanner import scan_repository_incremental
 from .repository_scanner import ScanPolicy, scan_repository
 
-INDEX_SCHEMA_VERSION = "1.3"
+INDEX_SCHEMA_VERSION = "1.4"
 
 
 def _atomic_write_json(output: Path, payload: dict[str, Any]) -> None:
@@ -153,6 +154,44 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Target commit or ref for Git comparison (default: HEAD).",
     )
 
+    parser.add_argument(
+        "--incremental",
+        action="store_true",
+        help=(
+            "Use the metadata-backed incremental repository scanner. "
+            "Unchanged files may be reused without reading their contents."
+        ),
+    )
+
+    parser.add_argument(
+        "--scan-cache",
+        default=None,
+        metavar="PATH",
+        help=(
+            "Optional incremental scan cache path. Relative paths are "
+            "resolved from --root. Default: .ai-dev-company/"
+            "repository-scan-cache.json."
+        ),
+    )
+
+    parser.add_argument(
+        "--verify-incremental",
+        action="store_true",
+        help=(
+            "Read and hash every eligible file even when cache metadata "
+            "matches. Requires --incremental."
+        ),
+    )
+
+    parser.add_argument(
+        "--refresh-scan-cache",
+        action="store_true",
+        help=(
+            "Ignore cached entries, perform a fresh content scan, and "
+            "rebuild the incremental cache. Requires --incremental."
+        ),
+    )
+
     return parser
 
 
@@ -170,11 +209,48 @@ def main(argv: list[str] | None = None) -> int:
                 f"Repository root is not an existing directory: {root}"
             )
 
+        if args.verify_incremental and not args.incremental:
+            raise ValueError(
+                "--verify-incremental requires --incremental."
+            )
+
+        if args.refresh_scan_cache and not args.incremental:
+            raise ValueError(
+                "--refresh-scan-cache requires --incremental."
+            )
+
         policy = ScanPolicy(
             max_file_bytes=args.max_file_bytes,
         )
 
-        snapshot = scan_repository(root, policy)
+        incremental_result = None
+
+        if args.incremental:
+            incremental_result = scan_repository_incremental(
+                root,
+                policy,
+                cache_path=args.scan_cache,
+                verify_unchanged=args.verify_incremental,
+                force_full=args.refresh_scan_cache,
+            )
+
+            snapshot = incremental_result.snapshot
+
+            scan_execution = {
+                "mode": "incremental",
+                **incremental_result.to_dict(),
+            }
+
+        else:
+            snapshot = scan_repository(root, policy)
+
+            scan_execution = {
+                "mode": "full",
+                "snapshot_sha256": snapshot.snapshot_sha256,
+                "cache_path": None,
+                "stats": None,
+            }
+
         dependencies = map_python_dependencies(root, snapshot)
 
         indexed_paths = {
@@ -216,7 +292,6 @@ def main(argv: list[str] | None = None) -> int:
                 current_impact_paths,
             )
 
-            # This validation applies to manually supplied and current Git paths.
             _validate_changed_files(
                 snapshot,
                 current_impact,
@@ -397,6 +472,7 @@ def main(argv: list[str] | None = None) -> int:
         payload = {
             "schema_version": INDEX_SCHEMA_VERSION,
             "snapshot_sha256": snapshot.snapshot_sha256,
+            "scan_execution": scan_execution,
             "repository": snapshot.to_dict(),
             "python_dependencies": dependencies.to_dict(),
             "git_changes": (
@@ -443,6 +519,22 @@ def main(argv: list[str] | None = None) -> int:
         f"dependency edges: {len(dependencies.edges)} | "
         f"parse issues: {len(dependencies.parse_issues)}"
     )
+
+    if incremental_result is not None:
+        stats = incremental_result.stats
+
+        print(
+            f"Incremental scan: cache={stats.cache_state} | "
+            f"reused={stats.files_reused} | "
+            f"read={stats.files_read} | "
+            f"bytes_read={stats.bytes_read} | "
+            f"verification={stats.verification_mode}"
+        )
+
+        if stats.cache_reason:
+            print(f"Cache note: {stats.cache_reason}")
+    else:
+        print("Repository scan: full content scan")
 
     if git_report is not None:
         print(
