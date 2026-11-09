@@ -380,25 +380,13 @@ class RegistryStore(_BASE_REGISTRY_STORE):
             reason=reason,
         )
 
-    def _validate_canonical_bootstrap(
+        def _validate_canonical_bootstrap(
         self,
         company: Mapping[str, Any],
         project: Mapping[str, Any],
         agents: Sequence[Mapping[str, Any]],
     ) -> None:
         if company.get("company_id") != CANONICAL_COMPANY_ID:
-            return
-
-        # Existing records are compared inside the adapter's single write
-        # transaction so callers retain the established IntegrityViolation
-        # contract and no partial state can escape. Strict preflight validation
-        # is applied only to the first bootstrap.
-        with closing(self._connect()) as db:
-            existing_company = db.execute(
-                "SELECT 1 FROM companies WHERE company_id=?",
-                (CANONICAL_COMPANY_ID,),
-            ).fetchone()
-        if existing_company is not None:
             return
 
         if (
@@ -417,12 +405,17 @@ class RegistryStore(_BASE_REGISTRY_STORE):
             "repository_url": CANONICAL_REPOSITORY_URL,
             "default_branch": CANONICAL_DEFAULT_BRANCH,
         }
+
         for key, expected in expected_project.items():
-            actual = project.get(key, "main" if key == "default_branch" else None)
+            actual = project.get(
+                key,
+                "main" if key == "default_branch" else None,
+            )
             if actual != expected:
                 raise _core.ValidationError(
                     f"Canonical project field '{key}' does not match the F01 contract"
                 )
+
         if project.get("description", "") != "":
             raise _core.ValidationError(
                 "Canonical project description must remain empty until explicitly specified"
@@ -443,20 +436,25 @@ class RegistryStore(_BASE_REGISTRY_STORE):
         }
         actual: dict[str, dict[str, Any]] = {}
         slugs: set[str] = set()
+
         for item in agents:
             if not isinstance(item, Mapping):
                 raise _core.ValidationError(
                     "Every canonical specialist definition must be an object"
                 )
+
             fields = _expected_agent_fields(item)
+
             if fields["agent_id"] in actual or fields["slug"] in slugs:
                 raise _core.ValidationError(
                     "Canonical specialist IDs and slugs must be unique"
                 )
+
             if item.get("status", "registered") != "registered":
                 raise _core.ValidationError(
                     "Agents must be registered, not activated by bootstrap"
                 )
+
             actual[fields["agent_id"]] = fields
             slugs.add(fields["slug"])
 
