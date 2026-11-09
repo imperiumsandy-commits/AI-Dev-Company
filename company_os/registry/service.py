@@ -19,10 +19,11 @@ from typing import Any, Mapping, Sequence
 from . import core as _core
 from .catalog import DEFAULT_AGENTS
 
-# The package initializer publishes the raw adapter under this stable name
-# before importing this module. The service must always inherit that raw class,
-# never the public compatibility alias installed after this module loads.
-_BASE_REGISTRY_STORE = getattr(_core, "SQLiteRegistryStore", _core.RegistryStore)
+_BASE_REGISTRY_STORE = getattr(
+    _core,
+    "SQLiteRegistryStore",
+    _core.RegistryStore,
+)
 
 CANONICAL_COMPANY_ID = "co_ai_dev_company"
 CANONICAL_COMPANY_SLUG = "ai-dev-company"
@@ -48,12 +49,12 @@ _AGENT_TRANSITIONS = {
     "retired": frozenset(),
 }
 
-# These are conservative detectors, not a universal secret classifier. They
-# catch common credential formats and secret-bearing field names. Arbitrary
-# opaque strings still require a real secret manager and data-handling policy.
 _SECRET_VALUE_PATTERNS = (
     re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----", re.I),
-    re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b"),
+    re.compile(
+        r"\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|"
+        r"github_pat_[A-Za-z0-9_]{20,})\b"
+    ),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b"),
     re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b"),
@@ -62,6 +63,7 @@ _SECRET_VALUE_PATTERNS = (
     re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{20,}\b", re.I),
     re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]{20,}\b", re.I),
 )
+
 _SECRET_FIELD_MARKERS = (
     "password",
     "passwd",
@@ -80,6 +82,7 @@ _SECRET_FIELD_MARKERS = (
     "tokenkey",
     "tokenmaterial",
 )
+
 _SECRET_FIELD_EXACT = frozenset({
     "secret",
     "token",
@@ -88,6 +91,7 @@ _SECRET_FIELD_EXACT = frozenset({
     "password",
     "passwd",
 })
+
 _SAFE_REFERENCE_SCHEMES = (
     "env://",
     "vault://",
@@ -104,6 +108,7 @@ def _normalise_key(value: Any) -> str:
 
 def _is_secret_field(value: Any) -> bool:
     key = _normalise_key(value)
+
     if key in {
         "tokenbudget",
         "maxtokens",
@@ -127,15 +132,16 @@ def _is_safe_secret_reference(key: Any, value: Any) -> bool:
         normalised.endswith("ref")
         or normalised.endswith("reference")
     )
+
     if not is_reference_key or not isinstance(value, str):
         return False
 
     reference = value.strip()
     lowered = reference.lower()
+
     if any(char.isspace() for char in reference):
         return False
 
-    # A scheme without a resource identifier is not a usable secret reference.
     for scheme in _SAFE_REFERENCE_SCHEMES:
         if lowered.startswith(scheme):
             resource = reference[len(scheme):].strip("/")
@@ -149,6 +155,7 @@ def _find_secret(value: Any, path: str = "value") -> str | None:
     if isinstance(value, Mapping):
         for key, child in value.items():
             child_path = f"{path}.{key}"
+
             if _is_secret_field(key) and not _is_safe_secret_reference(
                 key, child
             ):
@@ -157,6 +164,7 @@ def _find_secret(value: Any, path: str = "value") -> str | None:
             finding = _find_secret(child, child_path)
             if finding:
                 return finding
+
         return None
 
     if isinstance(value, Sequence) and not isinstance(
@@ -166,6 +174,7 @@ def _find_secret(value: Any, path: str = "value") -> str | None:
             finding = _find_secret(child, f"{path}[{index}]")
             if finding:
                 return finding
+
         return None
 
     if isinstance(value, str):
@@ -178,6 +187,7 @@ def _find_secret(value: Any, path: str = "value") -> str | None:
 
 def _expected_agent_fields(spec: Mapping[str, Any]) -> dict[str, Any]:
     capabilities = spec.get("capabilities")
+
     if (
         isinstance(capabilities, (str, bytes, bytearray))
         or not isinstance(capabilities, Sequence)
@@ -190,6 +200,7 @@ def _expected_agent_fields(spec: Mapping[str, Any]) -> dict[str, Any]:
         _core._text(item, "capability", 100)
         for item in capabilities
     ]
+
     if not values or len(values) != len(set(values)):
         raise _core.ValidationError(
             "Canonical specialist capabilities must be non-empty and unique"
@@ -248,7 +259,11 @@ def _agent_static_fields(agent: Mapping[str, Any]) -> tuple[Any, ...]:
 
 
 def _normalise_trigger_sql(sql: str | None) -> str:
-    return re.sub(r"\s+", " ", (sql or "").strip()).rstrip(";").lower()
+    return re.sub(
+        r"\s+",
+        " ",
+        (sql or "").strip(),
+    ).rstrip(";").lower()
 
 
 class RegistryStore(_BASE_REGISTRY_STORE):
@@ -266,6 +281,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
         reason: str,
     ) -> dict[str, Any]:
         normalized_id = _core._id(company_id, "company_id")
+
         if normalized_id == CANONICAL_COMPANY_ID and (
             slug != CANONICAL_COMPANY_SLUG
             or name != CANONICAL_COMPANY_NAME
@@ -316,10 +332,12 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                 "role_version": role_version,
                 "capabilities": capabilities,
             })
+
             expected = {
                 item["agent_id"]: _expected_agent_fields(item)
                 for item in DEFAULT_AGENTS
             }
+
             if expected.get(supplied["agent_id"]) != supplied:
                 raise _core.ValidationError(
                     "Canonical company accepts only the eight catalog specialists"
@@ -401,6 +419,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                 f"SELECT * FROM {table} WHERE {key}=?",
                 (scope_id,),
             ).fetchone()
+
             if scope is None:
                 raise _core.NotFound(
                     f"{scope_type} not found: {scope_id}"
@@ -411,6 +430,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                 WHERE scope_type=? AND scope_id=? AND config_key=?""",
                 (scope_type, scope_id, config_key),
             ).fetchone()
+
             actual_version = int(current["version"]) if current else 0
 
             if actual_version != expected_version:
@@ -420,6 +440,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                 )
 
             version = actual_version + 1
+
             db.execute(
                 """INSERT INTO configurations
                 VALUES(?,?,?,?,?,?,?)
@@ -443,6 +464,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
             company_id = (
                 scope_id if scope_type == "company" else scope["company_id"]
             )
+
             self._event(
                 db,
                 company_id,
@@ -478,6 +500,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
     ) -> dict[str, Any]:
         scope_id = _core._id(scope_id, "scope_id")
         config_key = _core._text(config_key, "config_key", 160)
+
         return super().get_configuration(
             scope_type=scope_type,
             scope_id=scope_id,
@@ -498,6 +521,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
             "project": ("projects", "project_id", _PROJECT_TRANSITIONS),
             "agent": ("agents", "agent_id", _AGENT_TRANSITIONS),
         }
+
         if not isinstance(entity_type, str) or entity_type not in rules:
             raise _core.ValidationError(
                 "Only project and agent lifecycle transitions are supported in F01"
@@ -505,6 +529,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
 
         entity_id = _core._id(entity_id, "entity_id")
         new_status = _core._text(new_status, "new_status", 40)
+
         if (
             not isinstance(expected_version, int)
             or isinstance(expected_version, bool)
@@ -515,6 +540,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
             )
 
         table, key, transitions = rules[entity_type]
+
         with closing(self._connect()) as db:
             current = db.execute(
                 f"SELECT status,version FROM {table} WHERE {key}=?",
@@ -525,6 +551,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
             raise _core.NotFound(
                 f"{entity_type} not found: {entity_id}"
             )
+
         if current["version"] != expected_version:
             raise _core.Conflict(
                 f"Stale {entity_type} version: expected {expected_version}, "
@@ -532,14 +559,15 @@ class RegistryStore(_BASE_REGISTRY_STORE):
             )
 
         allowed = transitions.get(current["status"], frozenset())
+
         if new_status not in allowed:
             raise _core.ValidationError(
                 f"Illegal {entity_type} transition: "
                 f"{current['status']} -> {new_status}"
             )
 
-        # The base adapter repeats the version check inside BEGIN IMMEDIATE.
-        # A concurrent transition between the read and write fails as Conflict.
+        # The adapter repeats optimistic-version validation inside its write
+        # transaction. A concurrent update cannot silently overwrite this one.
         return super().transition_status(
             entity_type=entity_type,
             entity_id=entity_id,
@@ -555,14 +583,22 @@ class RegistryStore(_BASE_REGISTRY_STORE):
         project: Mapping[str, Any],
         agents: Sequence[Mapping[str, Any]],
     ) -> str:
+        """Validate first-time bootstrap without masking stored-record conflicts.
+
+        Existing company and project records are compared by the SQLite
+        adapter inside its transaction. This preserves IntegrityViolation
+        semantics and prevents a preflight check from hiding a real conflict.
+        """
         if not isinstance(company, Mapping) or not isinstance(project, Mapping):
             raise _core.ValidationError(
                 "company and project definitions must be objects"
             )
 
         normalized_company_id = _core._id(
-            company.get("company_id"), "company_id"
+            company.get("company_id"),
+            "company_id",
         )
+
         if (
             isinstance(agents, (str, bytes, bytearray))
             or not isinstance(agents, Sequence)
@@ -571,71 +607,96 @@ class RegistryStore(_BASE_REGISTRY_STORE):
             raise _core.ValidationError(
                 "F01 bootstrap requires exactly eight specialist agent definitions"
             )
+
         if any(not isinstance(item, Mapping) for item in agents):
             raise _core.ValidationError(
                 "Every specialist definition must be an object"
             )
+
         if normalized_company_id != CANONICAL_COMPANY_ID:
             return normalized_company_id
 
-        if (
-            company.get("slug") != CANONICAL_COMPANY_SLUG
-            or company.get("name") != CANONICAL_COMPANY_NAME
-        ):
-            raise _core.ValidationError(
-                "Canonical company identity does not match the F01 contract"
-            )
+        # Determine whether the canonical records already exist. If they do,
+        # the adapter's transaction is the authority for record comparisons.
+        with closing(self._connect()) as db:
+            existing_company = db.execute(
+                "SELECT 1 FROM companies WHERE company_id=?",
+                (CANONICAL_COMPANY_ID,),
+            ).fetchone()
 
-        expected_project = {
-            "project_id": CANONICAL_PROJECT_ID,
-            "company_id": CANONICAL_COMPANY_ID,
-            "slug": CANONICAL_COMPANY_SLUG,
-            "name": CANONICAL_PROJECT_NAME,
-            "repository_url": CANONICAL_REPOSITORY_URL,
-            "default_branch": CANONICAL_DEFAULT_BRANCH,
-        }
-        for key, expected_value in expected_project.items():
-            actual = project.get(
-                key,
-                CANONICAL_DEFAULT_BRANCH if key == "default_branch" else None,
-            )
-            if actual != expected_value:
+            existing_project = db.execute(
+                "SELECT 1 FROM projects WHERE project_id=?",
+                (CANONICAL_PROJECT_ID,),
+            ).fetchone()
+
+        if existing_company is None:
+            if (
+                company.get("slug") != CANONICAL_COMPANY_SLUG
+                or company.get("name") != CANONICAL_COMPANY_NAME
+            ):
                 raise _core.ValidationError(
-                    f"Canonical project field '{key}' does not match the F01 contract"
+                    "Canonical company identity does not match the F01 contract"
                 )
 
-        if project.get("description", "") != "":
+        # The canonical project identifier and company binding are invariant.
+        # If its row already exists, the storage adapter compares every static
+        # field transactionally and reports a persistent-record conflict.
+        if project.get("project_id") != CANONICAL_PROJECT_ID:
             raise _core.ValidationError(
-                "Canonical project description must remain empty "
-                "until explicitly specified"
-            )
-        if project.get("status", "active") != "active":
-            raise _core.ValidationError(
-                "Canonical project bootstrap status must be active"
+                "Canonical project_id does not match the F01 contract"
             )
 
-        if (
-            isinstance(agents, (str, bytes, bytearray))
-            or not isinstance(agents, Sequence)
-            or len(agents) != len(DEFAULT_AGENTS)
-        ):
+        if project.get("company_id") != CANONICAL_COMPANY_ID:
             raise _core.ValidationError(
-                "Canonical F01 bootstrap requires exactly the eight catalog specialists"
+                "Canonical project company_id does not match the F01 contract"
             )
+
+        if existing_project is None:
+            expected_project = {
+                "slug": CANONICAL_COMPANY_SLUG,
+                "name": CANONICAL_PROJECT_NAME,
+                "repository_url": CANONICAL_REPOSITORY_URL,
+                "default_branch": CANONICAL_DEFAULT_BRANCH,
+            }
+
+            for key, expected_value in expected_project.items():
+                actual = project.get(
+                    key,
+                    CANONICAL_DEFAULT_BRANCH if key == "default_branch" else None,
+                )
+                if actual != expected_value:
+                    raise _core.ValidationError(
+                        f"Canonical project field '{key}' "
+                        "does not match the F01 contract"
+                    )
+
+            if project.get("description", "") != "":
+                raise _core.ValidationError(
+                    "Canonical project description must remain empty "
+                    "until explicitly specified"
+                )
+
+            if project.get("status", "active") != "active":
+                raise _core.ValidationError(
+                    "Canonical project bootstrap status must be active"
+                )
 
         expected = {
             item["agent_id"]: _expected_agent_fields(item)
             for item in DEFAULT_AGENTS
         }
+
         actual: dict[str, dict[str, Any]] = {}
         slugs: set[str] = set()
 
         for item in agents:
             fields = _expected_agent_fields(item)
+
             if fields["agent_id"] in actual or fields["slug"] in slugs:
                 raise _core.ValidationError(
                     "Canonical specialist IDs and slugs must be unique"
                 )
+
             if item.get("status", "registered") != "registered":
                 raise _core.ValidationError(
                     "Agents must be registered, not activated by bootstrap"
@@ -662,40 +723,52 @@ class RegistryStore(_BASE_REGISTRY_STORE):
         reason: str,
     ) -> dict[str, Any]:
         normalized_company_id = self._validate_canonical_bootstrap(
-            company, project, agents
+            company,
+            project,
+            agents,
         )
 
         company_payload = dict(company)
         project_payload = dict(project)
+
         company_payload["company_id"] = normalized_company_id
         project_payload["company_id"] = _core._id(
-            project_payload.get("company_id"), "project.company_id"
+            project_payload.get("company_id"),
+            "project.company_id",
         )
 
         effective_agents = [dict(item) for item in agents]
+
         if normalized_company_id == CANONICAL_COMPANY_ID:
-            # Reads happen before the adapter transaction. The base adapter
-            # re-checks every existing record atomically before committing.
+            # Detect unsupported legacy records without deleting or rewriting
+            # them. Existing records remain available for owner investigation.
             existing_agents = {
                 row["agent_id"]: row
                 for row in self.list_agents(CANONICAL_COMPANY_ID)
             }
+
             expected_agent_ids = {
                 item["agent_id"] for item in DEFAULT_AGENTS
             }
-            unexpected_agent_ids = set(existing_agents) - expected_agent_ids
+
+            unexpected_agent_ids = (
+                set(existing_agents) - expected_agent_ids
+            )
+
             if unexpected_agent_ids:
                 unexpected = ", ".join(sorted(unexpected_agent_ids))
                 raise _core.ValidationError(
-                    "Existing specialists fall outside the canonical eight-agent "
-                    f"catalog: {unexpected}"
+                    "Existing specialists fall outside the canonical "
+                    f"eight-agent catalog: {unexpected}"
                 )
 
             existing_projects = {
                 row["project_id"]: row
                 for row in self.list_projects(CANONICAL_COMPANY_ID)
             }
+
             previous_project = existing_projects.get(CANONICAL_PROJECT_ID)
+
             if previous_project is not None and (
                 _stored_project_static_fields(previous_project)
                 == _project_static_fields(project_payload)
@@ -704,10 +777,10 @@ class RegistryStore(_BASE_REGISTRY_STORE):
 
             for spec in effective_agents:
                 previous = existing_agents.get(spec["agent_id"])
+
                 if previous is not None and (
                     _agent_static_fields(previous) == _agent_static_fields(spec)
                 ):
-                    # Idempotent bootstrap must never downgrade a specialist.
                     spec["status"] = previous["status"]
 
         return super().bootstrap(
@@ -721,6 +794,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
     def validate(self, company_id: str) -> dict[str, Any]:
         """Verify database integrity, audit protections and the F01 contract."""
         company_id = _core._id(company_id, "company_id")
+
         try:
             result = super().validate(company_id)
         except (
@@ -736,7 +810,9 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                 "project_count": 0,
                 "agent_count": 0,
                 "audit_events_checked": 0,
-                "issues": [f"Registry validation could not complete: {exc}"],
+                "issues": [
+                    f"Registry validation could not complete: {exc}"
+                ],
                 "contract_validation": {
                     "schema_version_valid": False,
                     "append_only_triggers_valid": False,
@@ -744,12 +820,15 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                     "configuration_values_valid": False,
                     "audit_chain_valid": False,
                     "canonical_catalog_valid": (
-                        False if company_id == CANONICAL_COMPANY_ID else None
+                        False
+                        if company_id == CANONICAL_COMPANY_ID
+                        else None
                     ),
                 },
             }
 
         issues = list(result.get("issues", []))
+
         contracts: dict[str, Any] = {
             "schema_version_valid": False,
             "append_only_triggers_valid": False,
@@ -764,18 +843,22 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                 schema_version = db.execute(
                     "PRAGMA user_version"
                 ).fetchone()[0]
+
                 migration = db.execute(
                     "SELECT checksum FROM schema_migrations WHERE version=?",
                     (_core.SCHEMA_VERSION,),
                 ).fetchone()
+
                 expected_checksum = hashlib.sha256(
                     _core._SCHEMA.encode("utf-8")
                 ).hexdigest()
+
                 contracts["schema_version_valid"] = (
                     schema_version == _core.SCHEMA_VERSION
                     and migration is not None
                     and migration["checksum"] == expected_checksum
                 )
+
                 if not contracts["schema_version_valid"]:
                     issues.append(
                         "Registry schema migration/version checksum is invalid."
@@ -784,10 +867,12 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                 trigger_rows = db.execute(
                     "SELECT name,sql FROM sqlite_master WHERE type='trigger'"
                 ).fetchall()
+
                 trigger_sql = {
                     row["name"]: _normalise_trigger_sql(row["sql"])
                     for row in trigger_rows
                 }
+
                 expected_triggers = {
                     "audit_events_no_update": (
                         "create trigger audit_events_no_update before update "
@@ -800,6 +885,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                         "'audit_events is append-only'); end"
                     ),
                 }
+
                 contracts["append_only_triggers_valid"] = (
                     set(trigger_sql) == set(expected_triggers)
                     and all(
@@ -807,10 +893,11 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                         for name, expected_sql in expected_triggers.items()
                     )
                 )
+
                 if not contracts["append_only_triggers_valid"]:
                     issues.append(
-                        "Registry audit append-only protection is missing, altered, "
-                        "or contains an unapproved trigger."
+                        "Registry audit append-only protection is missing, "
+                        "altered, or contains an unapproved trigger."
                     )
 
                 scope_tables = {
@@ -818,12 +905,15 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                     "project": ("projects", "project_id"),
                     "agent": ("agents", "agent_id"),
                 }
+
                 configurations = db.execute(
                     """SELECT scope_type,scope_id,config_key,value_json
                     FROM configurations ORDER BY scope_type,scope_id,config_key"""
                 ).fetchall()
+
                 for row in configurations:
                     scope = scope_tables.get(row["scope_type"])
+
                     if scope is None:
                         contracts["configuration_scopes_valid"] = False
                         issues.append(
@@ -832,16 +922,12 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                         continue
 
                     table, key = scope
-                    owner_column = (
-                        "company_id"
-                        if row["scope_type"] != "company"
-                        else key
-                    )
+
                     scope_row = db.execute(
-                        f"SELECT {owner_column} AS owner_id "
-                        f"FROM {table} WHERE {key}=?",
+                        f"SELECT 1 FROM {table} WHERE {key}=?",
                         (row["scope_id"],),
                     ).fetchone()
+
                     if scope_row is None:
                         contracts["configuration_scopes_valid"] = False
                         issues.append(
@@ -863,39 +949,44 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                     ):
                         contracts["configuration_values_valid"] = False
                         issues.append(
-                            "Registry contains a configuration with invalid key or JSON data."
+                            "Registry contains a configuration with invalid "
+                            "key or JSON data."
                         )
                         continue
 
                     finding = _find_secret(value, "configuration")
+
                     if finding or (
                         _is_secret_field(config_key)
                         and not _is_safe_secret_reference(config_key, value)
                     ):
                         contracts["configuration_values_valid"] = False
                         issues.append(
-                            "Registry configuration contains credential-like data "
-                            "that must be migrated to a secret manager."
+                            "Registry configuration contains credential-like "
+                            "data that must be migrated to a secret manager."
                         )
 
                 audit_rows = db.execute(
                     "SELECT payload_json FROM audit_events ORDER BY event_id"
                 ).fetchall()
+
                 for event_row in audit_rows:
                     try:
                         payload = json.loads(event_row["payload_json"])
                     except (TypeError, ValueError, json.JSONDecodeError):
-                        # The base audit verifier reports malformed event payloads.
                         continue
 
                     finding = _find_secret(payload, "audit_payload")
+
                     if isinstance(payload, Mapping):
                         config_key = payload.get("config_key")
                         config_value = payload.get("value")
+
                         if (
                             _is_secret_field(config_key)
                             and not _is_safe_secret_reference(
-                                config_key, config_value
+                                config_key,
+                                config_value,
                             )
                         ):
                             finding = finding or "audit_payload.configuration"
@@ -903,8 +994,8 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                     if finding:
                         contracts["configuration_values_valid"] = False
                         issues.append(
-                            "Registry audit history contains credential-like data "
-                            "that must be migrated to a secret manager."
+                            "Registry audit history contains credential-like "
+                            "data that must be migrated to a secret manager."
                         )
 
         except sqlite3.Error as exc:
@@ -912,16 +1003,20 @@ class RegistryStore(_BASE_REGISTRY_STORE):
             contracts["append_only_triggers_valid"] = False
             contracts["configuration_scopes_valid"] = False
             contracts["configuration_values_valid"] = False
-            issues.append(f"Registry contract inspection failed: {exc}")
+            issues.append(
+                f"Registry contract inspection failed: {exc}"
+            )
 
         try:
             chain = self.verify_audit_chain()
             contracts["audit_chain_valid"] = bool(chain.get("valid"))
+
             if not contracts["audit_chain_valid"]:
                 issues.append(
                     "Registry audit hash chain is invalid: "
                     f"{chain.get('reason', 'unknown verification failure')}"
                 )
+
         except (sqlite3.Error, ValueError, TypeError, KeyError) as exc:
             issues.append(
                 f"Registry audit hash chain verification failed: {exc}"
@@ -929,21 +1024,26 @@ class RegistryStore(_BASE_REGISTRY_STORE):
 
         if company_id == CANONICAL_COMPANY_ID:
             canonical_issues: list[str] = []
+
             try:
                 company = self.get_company(company_id)
+
                 if (
                     company["slug"] != CANONICAL_COMPANY_SLUG
                     or company["name"] != CANONICAL_COMPANY_NAME
                 ):
                     canonical_issues.append(
-                        "Canonical company identity fields do not match the F01 contract."
+                        "Canonical company identity fields do not match "
+                        "the F01 contract."
                     )
 
                 projects = {
                     item["project_id"]: item
                     for item in self.list_projects(company_id)
                 }
+
                 project = projects.get(CANONICAL_PROJECT_ID)
+
                 if project is None:
                     canonical_issues.append(
                         "Canonical AI-Dev-Company project record is missing."
@@ -957,6 +1057,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                         "repository_url": CANONICAL_REPOSITORY_URL,
                         "default_branch": CANONICAL_DEFAULT_BRANCH,
                     }
+
                     for key, expected_value in expected_project.items():
                         if project.get(key) != expected_value:
                             canonical_issues.append(
@@ -968,30 +1069,36 @@ class RegistryStore(_BASE_REGISTRY_STORE):
                     item["agent_id"]: _expected_agent_fields(item)
                     for item in DEFAULT_AGENTS
                 }
+
                 actual_agents = {
                     item["agent_id"]: item
                     for item in self.list_agents(company_id)
                 }
+
                 if set(actual_agents) != set(expected_specs):
                     canonical_issues.append(
-                        "Registered specialist identities do not exactly match "
-                        "the canonical eight-agent catalog."
+                        "Registered specialist identities do not exactly "
+                        "match the canonical eight-agent catalog."
                     )
 
                 for agent_id, expected_fields in expected_specs.items():
                     actual = actual_agents.get(agent_id)
+
                     if actual is None:
                         continue
 
                     actual_fields = _expected_agent_fields(actual)
+
                     if actual_fields != expected_fields:
                         changed = [
-                            key for key in expected_fields
+                            key
+                            for key in expected_fields
                             if actual_fields.get(key) != expected_fields[key]
                         ]
+
                         canonical_issues.append(
-                            f"Specialist '{agent_id}' fields differ from the "
-                            f"canonical catalog: {', '.join(changed)}."
+                            f"Specialist '{agent_id}' fields differ from "
+                            f"the canonical catalog: {', '.join(changed)}."
                         )
 
             except (
@@ -1009,6 +1116,7 @@ class RegistryStore(_BASE_REGISTRY_STORE):
             issues.extend(canonical_issues)
 
         issues = list(dict.fromkeys(issues))
+
         return {
             **result,
             "valid": not issues,
