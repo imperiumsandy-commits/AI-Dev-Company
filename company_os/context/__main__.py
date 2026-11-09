@@ -18,7 +18,10 @@ from .git_snapshot import (
     load_git_revision_dependencies,
 )
 from .impact_analyzer import analyze_change_impact
-from .incremental_scanner import scan_repository_incremental
+from .incremental_scanner import (
+    DEFAULT_CACHE_RELATIVE_PATH,
+    scan_repository_incremental,
+)
 from .repository_scanner import ScanPolicy, scan_repository
 
 INDEX_SCHEMA_VERSION = "1.4"
@@ -71,6 +74,23 @@ def _resolve_output_path(root: Path, requested_output: str) -> Path:
         output = root / output
 
     return output.resolve()
+
+
+def _resolve_cache_argument(
+    root: Path,
+    requested_cache: str | None,
+) -> Path:
+    """Resolve an incremental cache argument before scanning."""
+
+    if requested_cache is None:
+        candidate = root / DEFAULT_CACHE_RELATIVE_PATH
+    else:
+        candidate = Path(requested_cache).expanduser()
+
+        if not candidate.is_absolute():
+            candidate = root / candidate
+
+    return Path(os.path.abspath(candidate)).resolve()
 
 
 def _validate_changed_files(snapshot: Any, impact_report: Any) -> None:
@@ -219,6 +239,24 @@ def main(argv: list[str] | None = None) -> int:
                 "--refresh-scan-cache requires --incremental."
             )
 
+        output = _resolve_output_path(
+            root,
+            args.output,
+        )
+
+        # Detect cache/index collisions before scanning or writing either file.
+        if args.incremental:
+            resolved_cache = _resolve_cache_argument(
+                root,
+                args.scan_cache,
+            )
+
+            if output == resolved_cache:
+                raise ValueError(
+                    "The repository index output cannot overwrite the "
+                    "incremental scan cache."
+                )
+
         policy = ScanPolicy(
             max_file_bytes=args.max_file_bytes,
         )
@@ -242,7 +280,10 @@ def main(argv: list[str] | None = None) -> int:
             }
 
         else:
-            snapshot = scan_repository(root, policy)
+            snapshot = scan_repository(
+                root,
+                policy,
+            )
 
             scan_execution = {
                 "mode": "full",
@@ -251,7 +292,10 @@ def main(argv: list[str] | None = None) -> int:
                 "stats": None,
             }
 
-        dependencies = map_python_dependencies(root, snapshot)
+        dependencies = map_python_dependencies(
+            root,
+            snapshot,
+        )
 
         indexed_paths = {
             record.path
@@ -321,8 +365,7 @@ def main(argv: list[str] | None = None) -> int:
                 "reason": None,
             }
 
-        # Historical analysis: deleted and renamed source paths are analysed
-        # against the dependency graph reconstructed from the merge-base.
+        # Historical analysis for deleted/renamed Python source paths.
         historical_impact = None
 
         historical_status = {
@@ -454,12 +497,6 @@ def main(argv: list[str] | None = None) -> int:
                             ),
                         }
 
-        output = _resolve_output_path(
-            root,
-            args.output,
-        )
-
-        # Never overwrite a source file included in the repository snapshot.
         if output.is_relative_to(root):
             output_relative = output.relative_to(root).as_posix()
 
