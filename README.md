@@ -1,4 +1,3 @@
-
 # AI-Dev-Company
 
 **An AI Software Engineering Company OS**
@@ -104,8 +103,7 @@ Automated tests for registry, memory, repository scanning, dependencies, increme
 
 - `Foundation plan` — Company OS architecture and implementation roadmap.
 - `business-analyst-pm-batch-01-source.md` — Business Analyst / PM implementation source material.
-- `PS-Output` and `ps output` — Historical command-output snapshots, not executable project modules.
-- `tools/GPT-GIT.ps1` — Existing optional PowerShell utility.
+- `PS-Output` — Historical command-output snapshot, not an executable project module.
 
 ## 5. Foundation Implementation Status
 
@@ -176,10 +174,10 @@ The required development process is:
 4. Prepare a consolidated implementation batch.
 5. Update existing source and related tests together.
 6. Review the complete batch for regression and architectural consistency.
-7. Submit through a GitHub feature branch and Pull Request.
-8. Run the complete GitHub Actions test suite.
-9. Merge only after successful verification.
-10. Re-read the merged source before starting dependent work.
+7. Apply the changes through the GitHub browser interface.
+8. Run and inspect the GitHub Actions verification.
+9. Merge or retain changes only after the required verification succeeds.
+10. Re-read the updated source before starting dependent work.
 
 The owner edits files manually through the GitHub browser interface.
 
@@ -187,7 +185,7 @@ The assistant provides complete file contents directly in chat.
 
 The assistant must not write, commit, or push to GitHub.
 
-PowerShell is optional and must not be required for normal project additions.
+Local PC setup, PowerShell scripts, and local Git publishing are not required for normal project development.
 
 ## 8. Quality Gates
 
@@ -211,23 +209,11 @@ Primary CI workflow:
 
 `.github/workflows/python-ci.yml`
 
-The workflow currently uses Python 3.12, compiles project packages and tests, executes pytest, and uploads a test-result artifact.
+The workflow uses Python 3.12, compiles project packages and tests, executes pytest, and uploads a test-result artifact.
 
-Run the complete test suite with:
+GitHub Actions is the authoritative automated verification environment for repository changes.
 
-```bash
-python -m pytest -q
-```
-
-Compile the tracked Python packages and tests with:
-
-```bash
-python -m compileall -q ai_dev_company
-python -m compileall -q company_os
-python -m compileall -q tests
-```
-
-Never declare a test suite successful without actual execution evidence.
+Never declare a test suite successful without actual execution evidence. A successful CI run verifies only the checks executed by that workflow; it does not automatically certify every architecture or product acceptance criterion.
 
 ## 10. Current Known Limitations
 
