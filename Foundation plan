@@ -1,364 +1,1127 @@
-Tumhari sabse important requirement hai: poori AI company ka knowledge permanent rahe, GPT ko sirf zaroori information mile aur uska generic output professional engineering quality tak improve ho.
 
-Isliye main ek aur important architectural improvement suggest karunga: Foundation ko 4 independent technical layers mein divide karna.
-1. Final architecture: AI Engineering Company OS
-Owner + Owner Advocate
+# AI-Dev-Company — Foundation Architecture and Engineering Plan
 
-Business vision, technical decisions, risk aur approvals
+**Architecture Baseline:** 0.2  
+**Repository:** imperiumsandy-commits/AI-Dev-Company  
+**Primary Branch:** main  
+**Review Date:** 2026-11-09  
+**Document Type:** Engineering Architecture and Execution Specification  
+**Implementation Authority:** Actual GitHub source code and automated verification
 
-AI Engineering Company OS
-01 — Knowledge & Memory Layer
+---
 
-Company identity, projects, 8 agent architectures, requirements, decisions, history, future work aur checkpoints.
+# 1. Purpose
 
-02 — Context Intelligence Layer
+The purpose of the Foundation is to build the technical infrastructure required to operate an AI Software Engineering Company.
 
-Repository scanner, dependency mapper, knowledge retrieval, token-budget manager aur intelligent context compiler.
+The system must coordinate eight independent software engineering specialists while preserving:
 
-03 — Execution & Agent Layer
+- Company identity.
+- Project information.
+- Business requirements.
+- Technical architecture.
+- Engineering decisions.
+- Repository history.
+- Task ownership.
+- Execution history.
+- Quality evidence.
+- Failures and recovery state.
+- Security and approval policies.
 
-Independent agent loader, task management, orchestration, workflow engine, tools aur recovery.
+The Foundation must reduce unnecessary dependence on long ChatGPT conversations.
 
-04 — Quality & Governance Layer
+A new AI session or authorized worker must be able to reconstruct relevant project context from persistent, verified company records.
 
-AI code reviewer, refinement engine, independent QA, security checks, cost controls aur approval system.
+This is an engineering target. It must not be described as implemented until automated acceptance tests prove it.
 
+# 2. Product Identity and Boundaries
 
-Business Analyst / PM
+The product is an AI Software Engineering Company OS.
 
-Independent AI developer
+It is not:
 
+- A single generic chatbot.
+- A collection of passive Markdown role descriptions.
+- A simple prompt-routing wrapper.
+- An unrestricted autonomous shell executor.
+- A replacement for independent software testing.
+- A system that treats generated code as verified code.
 
-System Architect
+The product must support independent engineering ownership and shared organizational coordination.
 
-Independent AI developer
+## 2.1 Company ownership
 
+The owner controls:
 
-Backend Developer
+- Company strategy.
+- Project priorities.
+- Business requirements.
+- Risk acceptance.
+- Production approvals.
+- Critical architecture decisions.
+- Spending and provider policies.
 
-Independent AI developer
+An Owner Advocate capability must evaluate proposed decisions against these requirements and identify technical and business risks.
 
+It must not bypass owner approval.
 
-Frontend Developer
+## 2.2 Project separation
 
-Independent AI developer
+Each project must have independent identity, requirements, architecture, memory, repository references, tasks, decisions, and execution history.
 
+No project may accidentally inherit another project's private source files, credentials, or internal context.
 
-Database Administrator
+AI-Dev-Company must remain independent from Intellect Media.
 
-Independent AI developer
+# 3. Final Logical Architecture
 
+The Company OS contains four principal infrastructure layers.
 
-Cybersecurity Engineer
+## Layer 01 — Knowledge and Memory
 
-Independent AI developer
+Responsibilities:
 
+- Company registry.
+- Project registry.
+- Agent identity.
+- Project requirements.
+- Engineering decisions.
+- Task backlog.
+- Historical events.
+- Checkpoints.
+- Lessons learned.
+- Recovery information.
 
-QA / Bug Hunter
+Target components:
 
-Independent AI developer
+- Company Registry.
+- Project Registry.
+- Agent Registry.
+- Memory Service.
+- Decision History.
+- Event Ledger.
+- Checkpoint Manager.
+
+## Layer 02 — Context Intelligence
+
+Responsibilities:
+
+- Repository discovery.
+- Source-code scanning.
+- Dependency analysis.
+- Change detection.
+- Knowledge retrieval.
+- Context ranking.
+- Token-budget management.
+- Specialist-specific context generation.
+
+Target components:
+
+- Repository Scanner.
+- Dependency Mapper.
+- Repository Index.
+- Knowledge Retriever.
+- Context Compiler.
+- Token Budget Manager.
+- Handoff Generator.
 
+## Layer 03 — Execution and Agent Infrastructure
 
-DevOps Engineer
+Responsibilities:
 
-Independent AI developer
+- Specialist loading.
+- Task assignment.
+- Workflow execution.
+- Tool access.
+- Provider routing.
+- State transitions.
+- Checkpointing.
+- Retries.
+- Failure recovery.
 
+Target components:
 
+- Agent Loader.
+- Agent Executor.
+- Task Engine.
+- Workflow Engine.
+- Model Gateway.
+- Model Router.
+- Recovery Engine.
 
-PostgreSQL + Artifact Storage + Execution History
+## Layer 04 — Quality and Governance
 
-Permanent company records and recoverable state
+Responsibilities:
 
+- Code verification.
+- Security analysis.
+- Change-risk evaluation.
+- Independent testing.
+- Refinement.
+- Owner approval.
+- Auditability.
+- Cost and permission control.
 
-Ismein PM company-wide planning karega, lekin har developer apne domain ka independent owner hoga. Foundation unke specialist logic ko mix nahi karegi.
-2. Final repository structure
-Yeh structure main recommend karta hoon. Yeh tumhare current v0.1 se kaafi different aur implementation-oriented hai.
+Target components:
 
+- Code Critic.
+- Refinement Engine.
+- Independent QA.
+- Security Engine.
+- Permission Manager.
+- Approval Manager.
+- Audit Evidence Ledger.
 
-AI-Dev-Company/
-│
-├── apps/
-│   ├── api/                     # Company OS API
-│   ├── worker/                  # Background task execution
-│   └── web/                     # Future management dashboard
-│
-├── company_os/
-│   ├── registry/
-│   │   ├── company_registry.py
-│   │   ├── project_registry.py
-│   │   └── agent_registry.py
-│   │
-│   ├── knowledge/
-│   │   ├── company_intelligence.py
-│   │   ├── project_memory.py
-│   │   ├── decision_history.py
-│   │   ├── event_ledger.py
-│   │   └── checkpoints.py
-│   │
-│   ├── context/
-│   │   ├── repository_scanner.py
-│   │   ├── dependency_mapper.py
-│   │   ├── knowledge_retriever.py
-│   │   ├── context_compiler.py
-│   │   └── token_budget.py
-│   │
-│   ├── execution/
-│   │   ├── agent_loader.py
-│   │   ├── agent_executor.py
-│   │   ├── task_engine.py
-│   │   ├── workflow_engine.py
-│   │   └── recovery_engine.py
-│   │
-│   ├── intelligence/
-│   │   ├── model_gateway.py
-│   │   ├── model_router.py
-│   │   ├── code_critic.py
-│   │   └── refinement_engine.py
-│   │
-│   └── governance/
-│       ├── owner_advocate.py
-│       ├── permissions.py
-│       ├── approvals.py
-│       └── audit_engine.py
-│
-├── agents/
-│   ├── business-analyst-pm/
-│   ├── system-architect/
-│   ├── backend-developer/
-│   ├── frontend-developer/
-│   ├── database-administrator/
-│   ├── cybersecurity-engineer/
-│   ├── qa-bug-hunter/
-│   └── devops-engineer/
-│
-├── integrations/
-│   ├── providers/
-│   ├── github/
-│   └── external_tools/
-│
-├── database/
-│   ├── migrations/
-│   └── schemas/
-│
-├── evaluations/
-├── tests/
-├── infrastructure/
-└── pyproject.toml
-
-
-Har agent ke folder mein apna agent.yaml, executable logic, domain-specific tools, schemas, evaluation cases aur tests honge. Existing Markdown files optional human-readable documentation rahengi—not the active memory or execution system.
-3. GPT ko Foundation padhane ka best method
-Yeh tumhari requirement ka sabse critical part hai.
-
-Main Context Compiler ko aise design karunga:
-Reading level	Kya read hoga	GPT context usage
-L0	Company identity aur basic rules	Bahut chhota
-L1	Selected project snapshot	Relevant summary
-L2	Assigned developer ki architecture	Sirf ek specialist
-L3	Current task aur related source files	Limited code
-L4	Deep audit, dependencies aur test evidence	Sirf zaroorat par
-
-Maan lo Backend Developer ko payment gateway banana hai.
-
-Usko poori 8-agent architecture read nahi karayenge. Sirf relevant project requirements, backend contracts, payment-related files, DB tables, security rules aur related test evidence denge.
-
-Naye chat ka context automatically generate karne ke liye product mein Generate Developer Context capability hogi. Tumhe manually poori repository copy nahi karni padegi; abhi normal ChatGPT chat mein generated context packet paste karna hoga, jab tak direct authorized connection available na ho.
-4. Audit system GPT ke bina kitna kaam karega?
-Bahut saara.
-Automatic repository scanning
-No GPT required
-
-File inventory, imports, dependency relationships, code hashes, Git changes aur available tests.
-Static validation
-No GPT required
-
-Lint, types, test execution, dependency vulnerabilities aur secret checks.
-Intelligent AI audit
-Controlled AI usage
-
-Sirf changed files, critical dependencies aur high-risk decisions ka model-based review.
-Audit ledger har result ke saath commit hash, file hashes, test version, findings aur unresolved risks rakhega. File change nahi hui to uska verified audit result reuse kar sakenge, provided dependencies aur test configuration bhi unchanged ho.
-
-Is approach ke liye repository-map aur incremental analysis useful engineering patterns hain. Aider ka repository map aur LangGraph ka checkpoint/store separation is design ko inform karte hain. 
-GitHub+1
-
-5. Technology stack — meri final initial choice
-Component	Choice
-Backend	Python + FastAPI
-Main database	PostgreSQL
-Agent workflow	LangGraph, controlled use
-Persistent execution state	PostgreSQL checkpointer/store
-Model gateway	Initially provider adapters; later LiteLLM
-Repository analysis	Python parser + dependency graph
-Quality assurance	Pytest + static analysis + security scans
-GitHub integration	GitHub API and Actions
-Artifact storage	Object storage, not Git for runtime data
-
-LangGraph ke checkpointer aur long-term store alag purposes serve karte hain: ek current workflow execution ko save karta hai, doosra sessions ke across persistent knowledge rakhta hai. 
-GitHub+1
-
-
-LiteLLM ko later adopt kar sakte hain. Iske budgets database-backed hote hain, isliye ise sirf ek API wrapper samajhkar integrate nahi karenge. 
-liteLLM+1
-
-
-Main PostgreSQL ko central source of truth rakhunga. Managed hosting choose karte waqt backup aur recovery policy bhi acceptance requirements mein hogi; free database plans par automatic backups assume nahi karenge. 
-Supabase Docs+1
-
-6. Isko ground par lane ka development plan
-Meri recommendation hai ki 30–40 files ek saath likhne ki jagah working vertical slices banayein.
-1. F01 — Company Registry
-   
-   Company, projects, eight specialists aur configuration ka machine-readable registry.
-2. F02 — Repository Intelligence
-   
-   Source code scanner, dependencies, file hashes aur architecture index.
-3. F03 — Persistent Memory
-   
-   PostgreSQL records, decisions, events, history aur checkpoints.
-4. F04 — Context Compiler
-   
-   Company, project, specialist aur task-specific context generation with token budgets.
-5. F05 — Incremental Audit
-   
-   Changed-file analysis, cached test evidence, resumable audit ledger.
-6. F06 — Agent Runtime
-   
-   Eight independent agent definitions, loaders, permissions aur executable workflows.
-7. F07 — Quality Engine
-   
-   Model review, coding improvement, retesting aur independent verification.
-8. F08 — Business Analyst / PM activation
-   
-   Complete company-wide planning, task delegation, project progress aur permanent backlog.
-Hum pehle F01–F05 ko ek actual working project par test karenge. Uske baad 8 developers ko ek-ek karke activate karenge.
-
-7. Foundation ke liye 10/10 success criteria
-Yeh kuch aise tests honge jo main mandatory rakhunga:
-- Naya ChatGPT session limited context mein company ko samajh sake.
-- Backend agent ko frontend ya doosre confidential project ka unnecessary context na mile.
-- Basic GPT/Gemini output ko measurable tests aur project standards se improve kiya ja sake.
-- GPT limit khatam hone par saved tasks aur audit wahi se resume hon.
-- Bina badlav wali files har baar deep audit na karwani padein.
-- Kisi bhi agent ka work history aur decisions traceable hon.
-- Sab 8 agents independently operate karein, lekin shared project state maintain karein.
-- Owner ke approval ke bina high-risk changes release na hon.
-Ek important difference: yeh criteria hamara engineering target hai; current system ko abhi in tests ko pass karna hai. Hum bina evidence ke 10/10 declare nahi karenge.
-Mera final decision
-Bhai, main tumhe ek giant FOUNDATION.md dekar kaam khatam nahi karunga. Main final architecture isi tarah freeze karne ka recommend karta hoon:
-1. Company OS ka machine-readable architecture aur executable foundation.
-2. Context Compiler aur incremental audit pehle, taaki GPT ki limitations architecture mein hi handle ho jaayen.
-3. Persistent database aur checkpoints, taaki project ki history kabhi sirf chat par depend na ho.
-4. Eight independent specialist agents, har ek ka dedicated executable structure.
-5. Quality and Refinement Engine, taaki generic model output ko final product na maana jaye.
-Aur tumhare fixed development method ke hisaab se main har batch ka complete code isi chat mein dunga; tum GitHub ke browser editor se add/replace karoge. PowerShell sirf chhote patches aur corrections ke liye rakhenge.
-
-Meri nazar mein yahi ab tak ka best, commercially scalable aur ground par implement karne layak plan hai. Isse zyada complex architecture abhi banana unnecessary hoga; pehle F01–F05 ke working implementation se ise prove karna sabse samajhdaar engineering decision hai.
-
-
-
-
-
-
-dusara chat
-
-Haan bhai, ab tumhara desired workflow clear hai. Hum original repository imperiumsandy-commits/AI-Dev-Company par hi kaam karenge. Fork ko working repository nahi banayenge.
-
-Main recommend karta hoon ki hum GPT → GitHub Reading → Manual GitHub Editing → GPT Verification ka system rakhein. PowerShell sirf chhote corrections aur local patches ke liye hoga.
-
-Lekin 403/404 ko bypass karne aur unka actual cause fix karne mein difference hai. Permission security bypass nahi karenge; error ka root cause fix karenge.
-1. GPT se GitHub par reading kaise hogi?
-OpenAI ka official GitHub connector is kaam ke liye hai:
-- GPT repository ki permitted files read aur search kar sakta hai.
-- File path, function name ya error message ke through relevant code dhoondh sakta hai.
-- Har baar poori repository padhne ki zaroorat nahi.
-- Changes GitHub par commit hone ke baad updated content dobara retrieve kiya ja sakta hai.
-Ek limitation: connector continuous synchronization ya automatic repository index nahi banata. Yeh zaroorat par GitHub se content retrieve karta hai. Aur standard ChatGPT GitHub connector read-only hai; direct writing ke liye Codex alag option hai. 
-OpenAI Help Center+1
-
-2. 403 aur 404 ka actual solution
-Error	Possible reason	Sahi solution
-403	Account ke paas READ permission	Repository owner se Write access
-403	App/token mein Contents Write permission missing	Authorized GitHub App/token permission update
-403	Rate limit exceeded	Reset ka wait, requests reduce
-403	Protected branch	Authorized PR workflow
-404	Galat file path ya branch	Exact path, filename aur branch verify
-404	Private repository access missing	Correct authorized account
-404	File ka naam ya URL encoding galat	Exact GitHub path use
-
-GitHub security ke liye kabhi-kabhi private resource exist hone ke bawajood 404 deta hai. 403 rate limiting ke kaaran bhi aa sakta hai. 
-GitHub Docs+2
-
-
-Tumhare current case ka confirmed issue: prajaktaranjane80-sketch aur sandyranjane-hash dono ko original repository par READ permission mili thi. Isliye 403 ko command badalkar bypass nahi kar sakte.
-
-Original repository mein write ke liye imperiumsandy-commits owner account se login ya authorized account ko Write access dena hoga.
-3. Hamara permanent working process
-Step 1 — GPT reads original GitHub
-
-Current branch, company index aur assigned specialist ki relevant files.
-
-Step 2 — GPT understands and plans
-
-Existing code inspect, architecture verify aur improvements decide.
-
-Step 3 — Complete coding in chat
-
-Exact path, complete source code, create/replace instructions.
-
-Step 4 — You edit directly in original GitHub
-
-Browser editor se save aur commit.
-
-Step 5 — GPT re-reads and verifies
-
-Committed changes, tests, file versions aur next task.
-
-
-4. Foundation Layer mein ek special system banayenge
-Meri recommendation hai ki Foundation mein machine-readable repository index ho:
-AI-Dev-Company/
-│
-├── AI_CONTEXT_INDEX.json
-│
-├── company_os/
-│   └── context/
-│       ├── github_reader.py
-│       ├── repository_indexer.py
-│       ├── context_compiler.py
-│       ├── token_budget.py
-│       ├── incremental_audit.py
-│       └── handoff_generator.py
-│
-├── agents/
-│   ├── business-analyst-pm/
-│   ├── system-architect/
-│   ├── backend-developer/
-│   ├── frontend-developer/
-│   ├── database-administrator/
-│   ├── cybersecurity-engineer/
-│   ├── qa-bug-hunter/
-│   └── devops-engineer/
-│
-└── evaluations/
-
-
-Is index mein har specialist ka path, architecture location, runtime status, dependencies aur current milestone rahega. Context Compiler sirf assigned task ki files GPT ko dega.
-
-Isse GPT ko 300 files ek saath read nahi karni padengi aur uski usage limit bach sakegi.
-5. Ab agla practical step
-Pehle ChatGPT mein GitHub connector configure karna hai:
-
-Settings → Apps → GitHub → Connect
-
-Wahan original account imperiumsandy-commits se authorize karo aur AI-Dev-Company repository select karo. 
-OpenAI Help Center
-
-
-Uske baad isi conversation mein hum ek read test karenge:
-
-imperiumsandy-commits/AI-Dev-Company ki Foundation plan file read karo aur uski actual contents ke against audit karo.
-
-Mera final decision: Original GitHub repository hi single source of truth rahegi. GPT usse read karega, tum usi par manually changes save karoge, aur GPT committed version verify karega. PowerShell optional patch tool rahega—mandatory development workflow nahi.
-
-Aur 403/404 aane par hum unhe identify aur properly resolve karenge, security permissions bypass nahi karenge.
+These are logical responsibilities. They do not require one Python file per component. Closely related responsibilities should remain together when doing so preserves clear ownership and maintainability.
+
+# 4. Eight Independent Specialist Architects
+
+The company will operate eight specialized developer identities.
+
+| ID | Specialist | Domain ownership |
+|---|---|---|
+| A01 | Business Analyst / PM | Requirements and project coordination |
+| A02 | System Architect | Architecture and technical contracts |
+| A03 | Backend Developer | Backend implementation |
+| A04 | Frontend Developer | Interface and frontend engineering |
+| A05 | Database Administrator | Database engineering |
+| A06 | Cybersecurity Engineer | Security and threat analysis |
+| A07 | QA / Bug Hunter | Independent verification |
+| A08 | DevOps Engineer | Infrastructure and release operations |
+
+Each specialist will eventually have:
+
+1. Identity and role manifest.
+2. Domain architecture.
+3. Responsibility boundaries.
+4. Workflow definition.
+5. Tool access policy.
+6. Input and output schemas.
+7. Persistent work history.
+8. Domain evaluation scenarios.
+9. Domain-specific tests.
+10. Failure and escalation policy.
+
+## 4.1 Specialist independence
+
+Shared company services may be reused.
+
+Specialist reasoning and domain decisions must not be merged into a generic role.
+
+The PM coordinates work and tracks completion.
+
+The System Architect owns technical system design.
+
+The Backend Developer owns backend implementation.
+
+The DBA owns database design.
+
+The Cybersecurity Engineer independently assesses security.
+
+The QA specialist independently verifies implementation.
+
+The DevOps Engineer owns operational and release engineering.
+
+No specialist may approve its own high-risk work as an independent verifier.
+
+## 4.2 Agent lifecycle
+
+An agent may move through:
+
+- Planned.
+- Registered.
+- Specification ready.
+- Runtime ready.
+- Evaluated.
+- Active.
+- Paused.
+- Retired.
+
+Registration is not equivalent to activation.
+
+Runtime readiness requires a valid specification, available tools, authorized permissions, valid contracts, and successful domain evaluations.
+
+# 5. Current Repository Baseline
+
+The following is the observed implementation baseline, not a future-state diagram.
+
+## 5.1 Registry
+
+Existing paths:
+
+- `company_os/registry/core.py`
+- `company_os/registry/catalog.py`
+- `company_os/registry/company_registry.py`
+- `company_os/registry/project_registry.py`
+- `company_os/registry/agent_registry.py`
+- `company_os/registry/cli.py`
+
+Current capabilities:
+
+- Company registration.
+- Project registration.
+- Agent registration.
+- Configuration storage.
+- Version-controlled configuration updates.
+- Status transitions.
+- Transactional bootstrap.
+- Audit event hash chain.
+- Integrity validation.
+
+Storage is SQLite.
+
+The initial catalog defines eight specialist identities.
+
+The registry is an implementation prototype, not a complete authorization or execution platform.
+
+## 5.2 Repository Intelligence
+
+Existing paths:
+
+- `company_os/context/repository_scanner.py`
+- `company_os/context/dependency_mapper.py`
+- `company_os/context/git_changes.py`
+- `company_os/context/git_snapshot.py`
+- `company_os/context/impact_analyzer.py`
+- `company_os/context/incremental_scanner.py`
+- `company_os/context/__main__.py`
+
+Current capabilities:
+
+- Repository file inventory.
+- File metadata and SHA-256 records.
+- Supported-language detection.
+- Python dependency mapping.
+- Committed Git change detection.
+- Historical Git revision analysis.
+- Current and historical change-impact reports.
+- Incremental metadata-cache reuse.
+- Cache validation and refresh.
+- Optional strict content verification.
+
+Important limitation:
+
+Metadata-based cache reuse is a performance optimization, not tamper-proof audit evidence.
+
+Audit-sensitive operations must use strict verification or a complete content scan.
+
+## 5.3 Persistent Memory Prototype
+
+Existing paths:
+
+- `ai_dev_company/memory_store.py`
+- `ai_dev_company/agent_loader.py`
+- `ai_dev_company/cli.py`
+
+Current capabilities:
+
+- Project memory.
+- Specialist-scoped memory.
+- Task records.
+- Task state transitions.
+- Event history.
+- Checkpoints.
+- Basic agent specification discovery.
+
+Limitations:
+
+- SQLite is local to the machine.
+- It is not automatically shared between ChatGPT sessions or cloud workers.
+- The memory store and registry are separate databases.
+- Existing seed instructions contain outdated Git workflow assumptions.
+- The loader expects an `agents/` specification directory that is not currently present in the repository tree.
+- Loading context does not itself invoke an AI model.
+
+These limitations must be resolved through tested integration work.
+
+## 5.4 Business Analyst / PM Source
+
+`business-analyst-pm-batch-01-source.md` contains specialist source material and an executable implementation design.
+
+It must not be treated as an active imported Python package merely because its implementation is documented in Markdown.
+
+The actual specialist package must be created and tested before activation.
+
+# 6. Canonical Component Ownership
+
+The system must avoid competing definitions and uncontrolled duplication.
+
+## 6.1 Registry ownership
+
+The Registry owns:
+
+- Company identity.
+- Project identity.
+- Specialist identity.
+- Registered capabilities.
+- Lifecycle status.
+- Shared configuration.
+- Registry audit events.
+
+The Registry must not become a general-purpose repository for arbitrary execution logs or full source-code contents.
+
+## 6.2 Memory ownership
+
+Persistent Memory owns:
+
+- Project knowledge.
+- Approved decisions.
+- Requirements.
+- Lessons.
+- Task history.
+- Specialist work history.
+- Checkpoints.
+- Recovery references.
+
+## 6.3 Context ownership
+
+Repository Intelligence owns technical observations.
+
+Context Intelligence transforms verified observations and selected knowledge into bounded context packets.
+
+Context Compiler must not silently mutate canonical project memory.
+
+## 6.4 Execution ownership
+
+The Execution layer owns active execution state, task coordination, provider requests, tool calls, retry state, and recovery orchestration.
+
+A task's business status must not be confused with an agent's runtime process status.
+
+## 6.5 Audit ownership
+
+The Audit Ledger owns verification evidence.
+
+Registry audit events and engineering audit evidence have related but distinct purposes.
+
+Registry history proves changes to registered entities.
+
+Engineering audit evidence records what was checked, against which source state, with which tests, and with what result.
+
+# 7. Storage Architecture
+
+## 7.1 Current storage
+
+The current implementation uses two SQLite prototypes:
+
+- Registry: `.ai-dev-company/company_registry.sqlite3`
+- Memory: `.ai-dev-company/project_memory.sqlite3`
+
+The two databases currently have no complete synchronization contract.
+
+Their separation is acceptable during the initial foundation stage.
+
+However, neither database must independently redefine the same company's identity or specialist configuration.
+
+## 7.2 Future shared storage
+
+PostgreSQL is the target for durable multi-session and multi-worker state.
+
+The transition must include:
+
+- Explicit schema design.
+- Versioned migrations.
+- Transactional migration.
+- Data preservation.
+- Rollback strategy.
+- Integrity verification.
+- Backup and restoration tests.
+- Concurrency tests.
+
+No automatic migration or deletion of existing SQLite data without verified migration evidence is permitted.
+
+## 7.3 Artifact storage
+
+Generated reports, large artifacts, execution attachments, and binary deliverables should use suitable artifact storage.
+
+Git must contain source code, schemas, required configuration templates, tests, and architecture specifications.
+
+Runtime databases, temporary outputs, and secrets must not be committed.
+
+## 7.4 Secrets
+
+Provider keys and credentials must never be stored in ordinary memory records, committed source files, logs, or generated context packets.
+
+Use authorized secret-management mechanisms with narrowly scoped permissions.
+
+# 8. Context Intelligence Architecture
+
+This is one of the most important capabilities in the complete product.
+
+A new ChatGPT session or specialist should not need to read the complete company repository for every task.
+
+The Context Compiler will construct progressively deeper context.
+
+| Level | Context contents | Purpose |
+|---|---|---|
+| L0 | Company identity and operating policies | Basic understanding |
+| L1 | Selected project overview and requirements | Project continuity |
+| L2 | Assigned specialist architecture and contracts | Domain-specific reasoning |
+| L3 | Current task, relevant source files, dependencies | Implementation |
+| L4 | Deep audit, security findings, test evidence and history | Verification |
+
+## 8.1 Context retrieval
+
+The future retrieval system must support:
+
+- Exact file and symbol lookup.
+- Project-specific knowledge retrieval.
+- Decision retrieval.
+- Task-history retrieval.
+- Specialist architecture retrieval.
+- Dependency-aware source selection.
+- Recency and relevance ranking.
+- Access-policy filtering.
+
+Context retrieval must distinguish authoritative facts from suggestions, assumptions, historical information, and unresolved risks.
+
+## 8.2 Context compilation
+
+A context packet must contain:
+
+- Company and project identifiers.
+- Assigned specialist.
+- Current task.
+- Relevant requirements.
+- Applicable decisions.
+- Required policies.
+- Related files and symbols.
+- Relevant dependencies.
+- Existing test evidence.
+- Known risks.
+- Unresolved questions.
+- Token budget and truncation information.
+
+The compiler must report omitted information rather than silently pretending the context is complete.
+
+## 8.3 Token management
+
+The token manager must:
+
+1. Estimate context size.
+2. Reserve output and reasoning capacity.
+3. Prioritize critical policies and task requirements.
+4. Prefer concise verified summaries.
+5. Include source references.
+6. Avoid duplicated content.
+7. Apply deterministic truncation rules.
+8. Report which information was excluded.
+
+Token budgets must be configurable by company, project, provider, and task type.
+
+# 9. Repository Intelligence and Incremental Audit
+
+Repository scanning and audit verification are related but different operations.
+
+## 9.1 Repository scanning
+
+The scanner maintains a deterministic view of the repository.
+
+It must record:
+
+- Relative file paths.
+- File types.
+- Content hashes.
+- File sizes.
+- Relevant metadata.
+- Scanner policy.
+- Warnings.
+- Snapshot identity.
+
+The scanner must never execute scanned source files.
+
+## 9.2 Dependency analysis
+
+The dependency engine builds relationships between files and components.
+
+For supported source files, it should provide:
+
+- Direct dependencies.
+- Reverse dependencies.
+- Transitive relationships.
+- Impacted components.
+- Parse limitations.
+
+Unsupported or incomplete dependency relationships must be reported honestly.
+
+## 9.3 Incremental scanning
+
+Unchanged records may be reused when validated cache conditions are satisfied.
+
+The cache must validate:
+
+- Cache schema.
+- Scanner schema.
+- Scan policy.
+- File identity and metadata.
+- Supported-path rules.
+- Changed and deleted files.
+
+Metadata matching does not establish that content has not been maliciously altered.
+
+Use strict content verification for security-sensitive and audit-sensitive operations.
+
+## 9.4 Audit evidence ledger
+
+The future audit ledger must record:
+
+- Repository commit.
+- File and dependency hashes.
+- Scanner version.
+- Test suite identity.
+- Test execution results.
+- Tool versions.
+- Findings.
+- Severity.
+- Unresolved risks.
+- Approval status.
+- Timestamp.
+
+Previous audit evidence can be reused only when every relevant input remains valid.
+
+Changes to source code, dependencies, scanner policies, tests, toolchains, or security policy must invalidate affected evidence.
+
+# 10. Task and Execution Infrastructure
+
+## 10.1 Task lifecycle
+
+The current memory prototype already defines task states including:
+
+- Draft.
+- Planned.
+- Queued.
+- Running.
+- Blocked.
+- Needs review.
+- Verified.
+- Approved.
+- Deployed.
+- Failed.
+- Cancelled.
+- Done.
+
+Future execution infrastructure must preserve valid transitions and prevent arbitrary status changes.
+
+## 10.2 Task definition
+
+Every executable task should have:
+
+- Unique ID.
+- Project ID.
+- Owner specialist.
+- Description.
+- Priority.
+- Dependencies.
+- Acceptance criteria.
+- Relevant context references.
+- Required tools.
+- Permission level.
+- Expected output.
+- Verification policy.
+- Current state.
+
+## 10.3 Dependency scheduling
+
+A task cannot start until its required dependencies satisfy their acceptance conditions.
+
+A completed task must not automatically mean its dependent task is safe to execute.
+
+Required independent verification must be completed first.
+
+## 10.4 Execution checkpoints
+
+The system must preserve recoverable state at important transitions:
+
+- Task started.
+- Tool execution started.
+- Artifact generated.
+- Review requested.
+- Verification failed.
+- Task blocked.
+- Approval granted.
+- Task completed.
+
+Recovery must not duplicate irreversible actions.
+
+# 11. Model Provider Infrastructure
+
+The system may support multiple authorized model providers.
+
+Examples include GPT, Claude, Gemini, and other providers that are explicitly integrated.
+
+The model gateway must provide a consistent interface without pretending every provider supports identical features.
+
+The router should consider:
+
+- Task category.
+- Model capability.
+- Context limits.
+- Cost.
+- Latency.
+- Reliability.
+- Provider availability.
+- Security constraints.
+
+Provider-specific failures must be recorded.
+
+Retries must use bounded policies.
+
+An alternative provider must not be selected if doing so violates task security, data-access, or output requirements.
+
+Provider integration is a future capability; it is not part of the currently active runtime.
+
+# 12. Quality and Refinement Engine
+
+Generic AI output must not be accepted as final engineering work.
+
+The future Quality Engine will use several independent stages.
+
+## Stage 1 — Structural Review
+
+Check:
+
+- Module boundaries.
+- Naming.
+- Code organization.
+- API and data contracts.
+- Dependency direction.
+- Existing repository conventions.
+
+## Stage 2 — Functional Review
+
+Check:
+
+- Requirements.
+- Expected behaviour.
+- Edge cases.
+- Error handling.
+- Regression risks.
+
+## Stage 3 — Security Review
+
+Check:
+
+- Authorization.
+- Input validation.
+- Secrets.
+- Data exposure.
+- Unsafe execution.
+- Dependency risks.
+
+## Stage 4 — Automated Verification
+
+Run relevant:
+
+- Unit tests.
+- Integration tests.
+- Contract tests.
+- Regression tests.
+- Static checks.
+- Security checks.
+
+## Stage 5 — Refinement
+
+The system may improve generated code when supported by concrete findings.
+
+Each refinement must preserve requirements and pass affected regression tests.
+
+## Stage 6 — Independent Verification
+
+The QA specialist verifies the result independently.
+
+A model's self-reported confidence is not test evidence.
+
+# 13. Governance and Owner Approval
+
+High-risk operations require explicit policy enforcement.
+
+Examples include:
+
+- Production deployment.
+- Database migration.
+- Destructive data operations.
+- Changes to company-wide permissions.
+- Sensitive security changes.
+- External spending.
+- Access to sensitive project data.
+
+The platform must maintain:
+
+- Permission boundaries.
+- Approval records.
+- Actor identity.
+- Change reasons.
+- Immutable or tamper-evident audit history.
+- Rejection history.
+- Emergency stop controls.
+
+The system must fail closed when required authorization cannot be verified.
+
+# 14. Observability and Operational Reliability
+
+The Foundation must eventually provide:
+
+- Structured logs.
+- Task execution history.
+- Agent execution status.
+- Provider health.
+- Tool failure records.
+- Retry counts.
+- Cost records.
+- Latency measurements.
+- Audit results.
+- Recovery outcomes.
+
+An operational metric must be linked to the execution or task it describes.
+
+The platform must distinguish:
+
+- Failed task.
+- Failed provider request.
+- Failed agent.
+- Failed test.
+- Infrastructure outage.
+- Invalid authorization.
+
+This is required for effective debugging and recovery.
+
+# 15. Repository and Development Governance
+
+## 15.1 Repository authority
+
+The original repository is:
+
+`imperiumsandy-commits/AI-Dev-Company`
+
+The `main` branch is the authoritative merged code state.
+
+The assistant provides implementation in chat.
+
+The owner manually applies changes in GitHub.
+
+The assistant must not directly modify, commit, or push repository files.
+
+## 15.2 File delivery contract
+
+Every source-code delivery must:
+
+- State `NEW FILE`, `REPLACE FILE`, or `DELETE FILE`.
+- Include the complete repository-relative path.
+- Include complete file contents for additions and replacements.
+- Include related test changes in the same batch.
+- Explain the technical reason for the operation.
+
+No incomplete snippets as replacement instructions.
+
+No download or ZIP requirement.
+
+No unnecessary local-machine or PowerShell workflow.
+
+## 15.3 Batch engineering policy
+
+Development must be organized by complete feature boundaries.
+
+A batch may contain multiple related source and test changes.
+
+The goal is to minimize repeated edits, not to impose an artificial maximum number of files.
+
+Before producing a batch:
+
+1. Read affected existing implementations.
+2. Inspect their callers and tests.
+3. Identify public contracts.
+4. Identify schema compatibility requirements.
+5. Define all required changes.
+6. Review security and failure cases.
+7. Prepare a consolidated source delivery.
+
+## 15.4 GitHub workflow
+
+The preferred workflow is:
+
+1. Create a feature branch.
+2. Apply the complete batch in GitHub.
+3. Open one Pull Request.
+4. Run CI.
+5. Review failures and test evidence.
+6. Merge only after all required gates pass.
+7. Verify the merged commit.
+
+Avoid committing intermediate incomplete feature states to `main`.
+
+## 15.5 CI policy
+
+The primary workflow is:
+
+`.github/workflows/python-ci.yml`
+
+The workflow must compile supported Python packages and execute the complete test suite.
+
+A schema or contract update must include its dependent regression-test updates.
+
+A green Actions run is necessary evidence, but it does not replace architecture or security review.
+
+# 16. Revised Implementation Order
+
+The implementation sequence is dependency-driven.
+
+## Phase 0 — Repository Stabilization
+
+Objectives:
+
+- Remove incorrectly nested or redundant configuration.
+- Establish authoritative README and Foundation architecture.
+- Remove obsolete working instructions.
+- Establish a consolidated GitHub development workflow.
+
+Exit criteria:
+
+- One authoritative CI workflow.
+- Accurate repository documentation.
+- No conflicting project operating instructions.
+- Successful CI.
+
+## Phase 1 — F01 Registry Hardening
+
+Objectives:
+
+- Validate company, project, and specialist contracts.
+- Verify transactional bootstrap.
+- Harden migration and configuration behaviour.
+- Establish clear registry ownership.
+- Prepare memory integration contracts.
+
+Exit criteria:
+
+- Registry invariants tested.
+- All eight specialist records validated.
+- No partial bootstrap state.
+- Audit chain integrity verified.
+
+## Phase 2 — F02 Repository Intelligence Hardening
+
+Objectives:
+
+- Stabilize scanner and snapshot contracts.
+- Verify dependency mapping.
+- Verify Git revision handling.
+- Verify impact analysis.
+- Verify incremental cache invalidation.
+- Establish repeatable full-scan comparison.
+
+Exit criteria:
+
+- Deterministic scan output.
+- Correct dependency and impact results.
+- Strict cache verification tests.
+- Regression suite passes.
+
+## Phase 3 — F03 Persistent Memory
+
+Objectives:
+
+- Remove obsolete seed instructions.
+- Define canonical ownership with Registry.
+- Define versioned memory schema.
+- Preserve old records.
+- Provide shared-storage architecture.
+- Implement history and checkpoint recovery.
+
+Exit criteria:
+
+- Existing information preserved.
+- Restart and recovery tested.
+- Concurrent writes tested.
+- Migration and restoration verified.
+
+## Phase 4 — F04 Context Compiler
+
+Objectives:
+
+- Build context retrieval.
+- Implement L0–L4 context construction.
+- Introduce token budgeting.
+- Add source references.
+- Provide task-specific handoff generation.
+
+Exit criteria:
+
+- Correct specialist context selection.
+- No unnecessary cross-project data exposure.
+- Deterministic budget handling.
+- Context reconstruction tests pass.
+
+## Phase 5 — F05 Incremental Audit
+
+Objectives:
+
+- Build a structured audit evidence ledger.
+- Connect Git snapshots and dependency information.
+- Reuse valid evidence.
+- Invalidate stale evidence.
+- Support resumable audits.
+
+Exit criteria:
+
+- Commit-linked audit history.
+- Reproducible verification evidence.
+- Safe cache reuse.
+- Correct stale-result invalidation.
+
+## Phase 6 — Governance and Security
+
+Objectives:
+
+- Define permission policies.
+- Establish approval workflows.
+- Enforce high-risk operation controls.
+- Verify agent/tool boundaries.
+- Protect secrets and sensitive data.
+
+Exit criteria:
+
+- Unauthorized operations rejected.
+- Approval history preserved.
+- Security policy tests pass.
+
+## Phase 7 — Quality and Refinement
+
+Objectives:
+
+- Introduce independent code review.
+- Build measurable quality rules.
+- Add refinement and retesting.
+- Record findings and risk severity.
+
+Exit criteria:
+
+- Findings linked to source versions.
+- Correct regression behaviour.
+- Independent verification.
+- No unsupported approval claims.
+
+## Phase 8 — Agent Runtime
+
+Objectives:
+
+- Load specialist definitions.
+- Enforce permissions.
+- Execute bounded tasks.
+- Integrate model gateway.
+- Implement retries and recovery.
+- Maintain execution history.
+
+Exit criteria:
+
+- Valid agent execution lifecycle.
+- Tool boundaries enforced.
+- Recoverable task state.
+- Provider failure handling tested.
+
+## Phase 9 — Business Analyst / PM Pilot
+
+Activate one specialist first.
+
+Validate requirements, dependency-safe planning, backlog management, handoffs, and permanent project records.
+
+The pilot must use the actual shared Company OS services.
+
+## Phase 10 — Remaining Seven Specialists
+
+Activate the remaining specialists one at a time.
+
+Each must pass independent domain evaluation before operational activation.
+
+## Phase 11 — Company Platform
+
+Develop API, management interface, integrations, deployment, monitoring, and operational infrastructure.
+
+Production deployment must follow the governance and security gates.
+
+# 17. Definition of Done
+
+A Foundation component is complete only when the relevant criteria are verified.
+
+| Area | Acceptance criterion |
+|---|---|
+| Company identity | Consistent across services |
+| Project isolation | No accidental cross-project data access |
+| Agent identity | Eight independent registered specialists |
+| Memory | Persistent and recoverable |
+| Decision history | Source and timestamp retained |
+| Context | Correct specialist-specific retrieval |
+| Token management | Enforced context budgets |
+| Repository intelligence | Reproducible snapshots |
+| Incremental analysis | Stale cache rejected |
+| Audit | Findings linked to source state |
+| Execution | Recoverable task lifecycle |
+| Governance | Approval and permission enforcement |
+| Quality | Independent verification |
+| Security | Negative tests and policy enforcement |
+| Observability | Traceable execution events |
+
+The complete Foundation must support a new authorized development session without depending on the entire previous ChatGPT conversation.
+
+# 18. Architecture Decisions and Constraints
+
+The following are the initial engineering decisions:
+
+1. Python is the initial implementation language.
+2. GitHub main is the source of truth for code.
+3. SQLite is the current registry and memory prototype storage.
+4. PostgreSQL is the future shared-state target.
+5. Repository scanning must not execute scanned source.
+6. Metadata cache reuse is not proof of content integrity.
+7. Provider calls must be controlled and budget-aware.
+8. Specialist logic remains independently owned.
+9. Security and governance precede unrestricted agent execution.
+10. Every completed feature requires implementation and test evidence.
+
+Future technology changes require explicit architectural justification and migration planning.
+
+# 19. Current Risks and Open Engineering Work
+
+The following must not be silently ignored:
+
+- Two independent SQLite databases exist.
+- Memory seed instructions contain an outdated Git workflow.
+- Shared memory is not yet implemented.
+- Agent specification directories are missing.
+- The basic agent loader is not an autonomous runtime.
+- The Context Compiler is not implemented.
+- The complete audit ledger is not implemented.
+- Governance and execution authorization are incomplete.
+- Provider integrations are not implemented.
+- The BA / PM source material is not yet an integrated active specialist.
+
+Each risk must have an owner, proposed resolution, dependencies, and acceptance criteria when it becomes an active task.
+
+# 20. Immediate Engineering Priority
+
+The immediate priority is not creating more modules.
+
+The priority is to stabilize the existing foundation and establish reliable interfaces between its components.
+
+The order is:
+
+1. Repository documentation and workflow stabilization.
+2. Registry and repository intelligence hardening.
+3. Persistent memory correction and integration.
+4. Context Compiler.
+5. Audit evidence ledger.
+6. Governance and security.
+7. Quality and refinement.
+8. Agent runtime.
+9. BA / PM pilot.
+10. Remaining specialists.
+
+No subsequent phase should be declared complete merely because its planned files exist.
+
+---
+
+**Final engineering principle**
+
+Build an integrated, recoverable, testable AI engineering organization.
+
+Prefer substantial improvements to existing components over unnecessary module creation.
+
+Maintain independent specialist ownership, preserve project knowledge, verify all implementation, and never confuse documentation, registration, or generated AI output with operational capability.
