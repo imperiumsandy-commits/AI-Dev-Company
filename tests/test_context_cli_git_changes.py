@@ -60,7 +60,33 @@ def create_python_project(root: Path) -> None:
     write(root, "app.py", "import pkg.service\n")
 
 
-def test_cli_builds_git_change_and_impact_reports(
+def run_index(
+    root: Path,
+    base_commit: str,
+    output: Path,
+) -> dict:
+    exit_code = main(
+        [
+            "--root",
+            str(root),
+            "--output",
+            str(output),
+            "--git-base",
+            base_commit,
+            "--git-head",
+            "HEAD",
+        ]
+    )
+
+    assert exit_code == 0
+    assert output.exists()
+
+    return json.loads(
+        output.read_text(encoding="utf-8")
+    )
+
+
+def test_cli_builds_git_change_and_current_impact_reports(
     tmp_path: Path,
 ) -> None:
     initialize_repository(tmp_path)
@@ -76,26 +102,7 @@ def test_cli_builds_git_change_and_impact_reports(
     commit_all(tmp_path, "modify core")
 
     output = tmp_path / ".ai-dev-company" / "repository-index.json"
-
-    exit_code = main(
-        [
-            "--root",
-            str(tmp_path),
-            "--output",
-            str(output),
-            "--git-base",
-            base_commit,
-            "--git-head",
-            "HEAD",
-        ]
-    )
-
-    assert exit_code == 0
-    assert output.exists()
-
-    payload = json.loads(
-        output.read_text(encoding="utf-8")
-    )
+    payload = run_index(tmp_path, base_commit, output)
 
     git_changes = payload["git_changes"]
 
@@ -104,6 +111,7 @@ def test_cli_builds_git_change_and_impact_reports(
     assert git_changes["changes"][0]["status"] == "M"
     assert git_changes["changes"][0]["path"] == "pkg/core.py"
 
+    assert payload["schema_version"] == "1.3"
     assert payload["change_impact_status"]["status"] == "computed"
 
     impact = payload["change_impact"]
@@ -113,18 +121,22 @@ def test_cli_builds_git_change_and_impact_reports(
     assert impact["direct_count"] == 1
     assert impact["transitive_count"] == 1
 
-    impacted_paths = {
+    assert {
         item["path"]
         for item in impact["impacted_files"]
-    }
-
-    assert impacted_paths == {
+    } == {
         "pkg/service.py",
         "app.py",
     }
 
+    assert payload["historical_change_impact"] is None
+    assert (
+        payload["historical_change_impact_status"]["status"]
+        == "no_removed_paths"
+    )
 
-def test_cli_reports_deleted_file_without_fake_current_impact(
+
+def test_deleted_file_uses_historical_dependency_graph(
     tmp_path: Path,
 ) -> None:
     initialize_repository(tmp_path)
@@ -139,41 +151,90 @@ def test_cli_reports_deleted_file_without_fake_current_impact(
     commit_all(tmp_path, "remove legacy module")
 
     output = tmp_path / ".ai-dev-company" / "repository-index.json"
-
-    exit_code = main(
-        [
-            "--root",
-            str(tmp_path),
-            "--output",
-            str(output),
-            "--git-base",
-            base_commit,
-        ]
-    )
-
-    assert exit_code == 0
-
-    payload = json.loads(
-        output.read_text(encoding="utf-8")
-    )
+    payload = run_index(tmp_path, base_commit, output)
 
     git_changes = payload["git_changes"]
 
     assert git_changes["change_count"] == 1
-    assert git_changes["removed_paths"] == [
-        "pkg/legacy.py"
-    ]
+    assert git_changes["removed_paths"] == ["pkg/legacy.py"]
 
+    # Current snapshot cannot analyse a source file that no longer exists.
     assert payload["change_impact"] is None
     assert payload["change_impact_status"]["status"] == "not_computed"
 
-    skipped = payload["change_impact_skipped_paths"]
+    # The base commit still contains the deleted source and its dependents.
+    historical = payload["historical_change_impact"]
 
-    assert any(
-    item["path"] == "pkg/legacy.py"
-    and "base commit" in item["reason"]
-    for item in skipped
-)
+    assert historical is not None
+    assert historical["base_commit"] == base_commit
+
+    historical_report = historical["impact_report"]
+
+    assert historical_report["changed_files"] == [
+        "pkg/legacy.py"
+    ]
+    assert historical_report["impacted_count"] == 1
+    assert historical_report["direct_count"] == 1
+
+    assert historical_report["impacted_files"][0]["path"] == (
+        "consumer.py"
+    )
+
+    assert (
+        payload["historical_change_impact_status"]["status"]
+        == "computed"
+    )
+
+    assert not any(
+        item["path"] == "pkg/legacy.py"
+        for item in payload["change_impact_skipped_paths"]
+    )
+
+
+def test_renamed_file_uses_old_path_for_historical_impact(
+    tmp_path: Path,
+) -> None:
+    initialize_repository(tmp_path)
+
+    write(tmp_path, "pkg/__init__.py", "")
+    write(tmp_path, "pkg/legacy.py", "VALUE = 1\n")
+    write(tmp_path, "consumer.py", "import pkg.legacy\n")
+
+    base_commit = commit_all(tmp_path, "base project")
+
+    run_git(
+        tmp_path,
+        "mv",
+        "pkg/legacy.py",
+        "pkg/modern.py",
+    )
+    commit_all(tmp_path, "rename legacy module")
+
+    output = tmp_path / ".ai-dev-company" / "repository-index.json"
+    payload = run_index(tmp_path, base_commit, output)
+
+    changes = payload["git_changes"]["changes"]
+
+    rename = next(
+        item
+        for item in changes
+        if item["status"] == "R"
+    )
+
+    assert rename["path"] == "pkg/modern.py"
+    assert rename["previous_path"] == "pkg/legacy.py"
+
+    historical = payload["historical_change_impact"]
+
+    assert historical is not None
+    assert historical["impact_report"]["changed_files"] == [
+        "pkg/legacy.py"
+    ]
+
+    assert {
+        item["path"]
+        for item in historical["impact_report"]["impacted_files"]
+    } == {"consumer.py"}
 
 
 def test_cli_rejects_invalid_git_base_without_writing_index(
