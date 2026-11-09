@@ -1,12 +1,15 @@
+
 name: AI-Dev-Company CI
 
 on:
   push:
     branches:
       - main
+
   pull_request:
     branches:
       - main
+
   workflow_dispatch:
 
 permissions:
@@ -25,6 +28,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -36,15 +41,20 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pytest
 
-      - name: Compile all Python packages and tests
-        run: |
-          python -m compileall -q ai_dev_company company_os tests
+      - name: Compile AI company package
+        run: python -m compileall -q ai_dev_company
 
-      - name: Run automated tests
+      - name: Compile Company OS package
+        run: python -m compileall -q company_os
+
+      - name: Compile automated tests
+        run: python -m compileall -q tests
+
+      - name: Run complete regression suite
         run: |
           python -m pytest -q --junitxml=test-results.xml
 
-      - name: Save test report
+      - name: Upload test report
         if: always()
         uses: actions/upload-artifact@v6
         with:
