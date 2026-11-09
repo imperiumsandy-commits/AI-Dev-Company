@@ -1,11 +1,9 @@
 """Incremental, cache-backed repository inventory.
 
 The full repository scanner remains the reference implementation.
-This module accelerates repeated scans by reusing file records only when
-filesystem identity and metadata match a validated cache entry.
-
-Metadata mode is an optimization, not tamper-proof evidence. Use
-verify_unchanged=True or scan_repository() for strict content verification.
+Metadata-based cache reuse is a performance optimization, not tamper-proof
+audit evidence. Use strict verification or a full scan for audit-sensitive
+operations.
 """
 
 from __future__ import annotations
@@ -22,19 +20,15 @@ from typing import Any
 
 from .repository_scanner import (
     SCHEMA_VERSION,
-    DEFAULT_EXCLUDED_PATTERNS,
-    DEFAULT_EXCLUDED_DIRS,
-    DEFAULT_CACHE_RELATIVE_PATH,
-    _LANGUAGE_BY_EXTENSION,
     _is_excluded_name,
     _is_supported_file,
+    _LANGUAGE_BY_EXTENSION,
     FileRecord,
     RepositorySnapshot,
     ScanPolicy,
     ScanWarning,
 )
 
-# Cache schema is deliberately independent from the repository snapshot schema.
 CACHE_SCHEMA_VERSION = "1.0"
 DEFAULT_CACHE_RELATIVE_PATH = Path(".ai-dev-company") / "repository-scan-cache.json"
 MAX_CACHE_BYTES = 64 * 1024 * 1024
@@ -110,7 +104,7 @@ def _policy_sha256(policy: ScanPolicy) -> str:
 
 
 def _stat_fingerprint(file_stat: os.stat_result) -> dict[str, int]:
-    """Build a conservative identity and metadata fingerprint."""
+    """Build a conservative filesystem identity/metadata fingerprint."""
 
     return {
         "device": int(file_stat.st_dev),
@@ -545,8 +539,8 @@ def scan_repository_incremental(
     match.
 
     `verify_unchanged=True` reads and hashes every eligible file even when
-    metadata matches. `force_full=True` ignores every cached entry and
-    rebuilds the cache from the current repository.
+    metadata matches. `force_full=True` ignores cached entries and rebuilds
+    the cache from the current repository.
 
     Directory traversal always occurs, so added and deleted paths are found.
     The cache never stores source contents.
