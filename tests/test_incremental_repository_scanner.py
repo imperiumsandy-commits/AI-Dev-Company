@@ -20,10 +20,6 @@ def write(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-def snapshot_payload(root: Path) -> dict:
-    return scan_repository(root).to_dict()
-
-
 def test_first_incremental_scan_matches_full_scanner(
     tmp_path: Path,
 ) -> None:
@@ -32,7 +28,7 @@ def test_first_incremental_scan_matches_full_scanner(
     write(tmp_path / ".env", "TOKEN=secret\n")
     write(tmp_path / "assets" / "data.bin", "ignored extension")
 
-    expected = snapshot_payload(tmp_path)
+    expected = scan_repository(tmp_path).to_dict()
 
     result = scan_repository_incremental(tmp_path)
 
@@ -60,7 +56,7 @@ def test_second_scan_reuses_unchanged_files_without_reading_content(
     assert second.stats.bytes_read == 0
 
 
-def test_modified_file_is_re_read_while_unchanged_file_is_reused(
+def test_modified_file_is_reread_and_matches_full_scanner(
     tmp_path: Path,
 ) -> None:
     write(tmp_path / "app.py", "VALUE = 1\n")
@@ -71,6 +67,7 @@ def test_modified_file_is_re_read_while_unchanged_file_is_reused(
     write(tmp_path / "app.py", "VALUE = 200\n")
 
     result = scan_repository_incremental(tmp_path)
+    full_snapshot = scan_repository(tmp_path)
 
     assert result.stats.cache_state == "hit"
     assert result.stats.files_read == 1
@@ -82,15 +79,16 @@ def test_modified_file_is_re_read_while_unchanged_file_is_reused(
         if item.path == "app.py"
     )
 
-    assert record.sha256 != (
-        scan_repository(tmp_path).files[
-            next(
-                index
-                for index, item in enumerate(scan_repository(tmp_path).files)
-                if item.path == "README.md"
-            )
-        ].sha256
+    full_record = next(
+        item
+        for item in full_snapshot.files
+        if item.path == "app.py"
     )
+
+    assert result.snapshot.snapshot_sha256 == (
+        full_snapshot.snapshot_sha256
+    )
+    assert record.sha256 == full_record.sha256
 
 
 def test_added_and_deleted_files_update_the_snapshot(
@@ -105,14 +103,19 @@ def test_added_and_deleted_files_update_the_snapshot(
     write(tmp_path / "new.py", "VALUE = 3\n")
 
     result = scan_repository_incremental(tmp_path)
+    full_snapshot = scan_repository(tmp_path)
 
-    paths = {item.path for item in result.snapshot.files}
+    paths = {
+        item.path
+        for item in result.snapshot.files
+    }
 
     assert paths == {"keep.py", "new.py"}
     assert result.stats.files_reused == 1
     assert result.stats.files_read == 1
+
     assert result.snapshot.snapshot_sha256 == (
-        scan_repository(tmp_path).snapshot_sha256
+        full_snapshot.snapshot_sha256
     )
 
 
@@ -156,8 +159,10 @@ def test_corrupt_cache_falls_back_to_full_scan_and_recovers(
     assert recovered.stats.files_reused == 0
     assert recovered.stats.files_read == 1
 
-    # The corrupt cache is replaced with a valid cache.
-    json.loads(cache_path.read_text(encoding="utf-8"))
+    # The corrupted cache must be replaced by valid JSON.
+    json.loads(
+        cache_path.read_text(encoding="utf-8")
+    )
 
     next_scan = scan_repository_incremental(tmp_path)
 
@@ -217,6 +222,28 @@ def test_cache_cannot_be_written_into_scanned_source_tree(
         scan_repository_incremental(
             tmp_path,
             cache_path="cache.json",
+        )
+
+
+def test_cache_path_cannot_use_symlinked_parent(
+    tmp_path: Path,
+) -> None:
+    write(tmp_path / "app.py", "VALUE = 1\n")
+
+    outside = tmp_path.parent / "incremental-cache-outside"
+    outside.mkdir(exist_ok=True)
+
+    link = tmp_path / ".cache-link"
+
+    try:
+        link.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("Directory symlinks are unavailable on this platform.")
+
+    with pytest.raises(ValueError, match="symbolic links"):
+        scan_repository_incremental(
+            tmp_path,
+            cache_path=".cache-link/cache.json",
         )
 
 
