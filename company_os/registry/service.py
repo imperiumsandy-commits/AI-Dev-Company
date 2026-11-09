@@ -513,27 +513,100 @@ class RegistryStore(_BASE_REGISTRY_STORE):
             reason=reason,
         )
 
-    def validate(self, company_id: str) -> dict[str, Any]:
-        try:
-            result = super().validate(company_id)
-        except (sqlite3.Error, ValueError, TypeError, KeyError) as exc:
-            return {
-                "valid": False,
-                "company_id": company_id,
-                "project_count": 0,
-                "agent_count": 0,
-                "audit_events_checked": 0,
-                "issues": [f"Registry validation could not complete: {exc}"],
-            }
+        def _validate_canonical_bootstrap(
+        self,
+        company: Mapping[str, Any],
+        project: Mapping[str, Any],
+        agents: Sequence[Mapping[str, Any]],
+    ) -> None:
+        # Normalize exactly as the SQLite adapter will normalize the ID.
+        # This prevents whitespace from bypassing the canonical-company guard.
+        normalized_company_id = _core._id(
+            company.get("company_id"),
+            "company_id",
+        )
 
-        issues = list(result.get("issues", []))
-        contracts: dict[str, Any] = {
-            "schema_version_valid": False,
-            "append_only_triggers_valid": False,
-            "configuration_scopes_valid": True,
-            "configuration_values_valid": True,
-            "canonical_catalog_valid": None,
+        if normalized_company_id != CANONICAL_COMPANY_ID:
+            return
+
+        if (
+            company.get("slug") != CANONICAL_COMPANY_SLUG
+            or company.get("name") != CANONICAL_COMPANY_NAME
+        ):
+            raise _core.ValidationError(
+                "Canonical company identity does not match the F01 contract"
+            )
+
+        expected_project = {
+            "project_id": CANONICAL_PROJECT_ID,
+            "company_id": CANONICAL_COMPANY_ID,
+            "slug": CANONICAL_COMPANY_SLUG,
+            "name": CANONICAL_PROJECT_NAME,
+            "repository_url": CANONICAL_REPOSITORY_URL,
+            "default_branch": CANONICAL_DEFAULT_BRANCH,
         }
+
+        for key, expected in expected_project.items():
+            actual = project.get(
+                key,
+                "main" if key == "default_branch" else None,
+            )
+            if actual != expected:
+                raise _core.ValidationError(
+                    f"Canonical project field '{key}' "
+                    "does not match the F01 contract"
+                )
+
+        if project.get("description", "") != "":
+            raise _core.ValidationError(
+                "Canonical project description must remain empty "
+                "until explicitly specified"
+            )
+
+        if (
+            isinstance(agents, (str, bytes, bytearray))
+            or not isinstance(agents, Sequence)
+            or len(agents) != len(DEFAULT_AGENTS)
+        ):
+            raise _core.ValidationError(
+                "Canonical F01 bootstrap requires exactly "
+                "the eight catalog specialists"
+            )
+
+        expected = {
+            item["agent_id"]: _expected_agent_fields(item)
+            for item in DEFAULT_AGENTS
+        }
+
+        actual: dict[str, dict[str, Any]] = {}
+        slugs: set[str] = set()
+
+        for item in agents:
+            if not isinstance(item, Mapping):
+                raise _core.ValidationError(
+                    "Every canonical specialist definition must be an object"
+                )
+
+            fields = _expected_agent_fields(item)
+
+            if fields["agent_id"] in actual or fields["slug"] in slugs:
+                raise _core.ValidationError(
+                    "Canonical specialist IDs and slugs must be unique"
+                )
+
+            if item.get("status", "registered") != "registered":
+                raise _core.ValidationError(
+                    "Agents must be registered, not activated by bootstrap"
+                )
+
+            actual[fields["agent_id"]] = fields
+            slugs.add(fields["slug"])
+
+        if actual != expected:
+            raise _core.ValidationError(
+                "Specialist definitions do not exactly match "
+                "the canonical eight-agent catalog"
+            )
 
         try:
             with closing(self._connect()) as db:
