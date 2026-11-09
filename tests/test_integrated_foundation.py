@@ -396,14 +396,15 @@ def test_backup_checksum_detects_modified_database(project_root, tmp_path):
     service.create_backup(backup_dir)
 
     memory_copy = backup_dir / "project_memory.sqlite3"
+
     with memory_copy.open("ab") as handle:
         handle.write(b"tamper")
 
     with pytest.raises(
-    FoundationIntegrityError,
-    match=r"(?:size|checksum) mismatch",
-):
-    FoundationService.verify_backup(backup_dir)
+        FoundationIntegrityError,
+        match=r"(?:size|checksum) mismatch",
+    ):
+        FoundationService.verify_backup(backup_dir)
 
 
 def test_restore_refuses_to_overwrite_existing_state(project_root, tmp_path):
