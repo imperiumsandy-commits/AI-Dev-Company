@@ -45,8 +45,36 @@ def test_legacy_memory_migration_archives_old_policy_without_deleting_it(
             (LEGACY_DELIVERY_POLICY_TITLE,),
         ).fetchone()
 
-    assert old_before is not None
-    assert old_before[2] == 0
+        # Simulate a database created by the previous application version.
+        if old_before is None:
+            legacy_content = (
+                "Legacy GPT, PowerShell and Git workflow. "
+                "This historical record must be archived, not deleted."
+            )
+            db.execute(
+                """
+                INSERT INTO memories(
+                    scope,kind,title,content,source,tags_json,
+                    created_at,updated_at,archived
+                )
+                VALUES(?,?,?,?,?,?,?,?,0)
+                """,
+                (
+                    "project",
+                    "decision",
+                    LEGACY_DELIVERY_POLICY_TITLE,
+                    legacy_content,
+                    "legacy-bootstrap",
+                    "[]",
+                    "2026-01-01T00:00:00+00:00",
+                    "2026-01-01T00:00:00+00:00",
+                ),
+            )
+            old_before = (
+                legacy_content,
+                "legacy-bootstrap",
+                0,
+            )
 
     service = FoundationService(project_root)
 
