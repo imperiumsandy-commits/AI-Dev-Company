@@ -10,7 +10,6 @@ verify_unchanged=True or scan_repository() for strict content verification.
 
 from __future__ import annotations
 
-import fnmatch
 import hashlib
 import json
 import os
@@ -19,14 +18,13 @@ import tempfile
 
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .repository_scanner import (
     SCHEMA_VERSION,
-    DEFAULT_EXCLUDED_DIRS,
     DEFAULT_EXCLUDED_PATTERNS,
-    DEFAULT_EXTENSIONS,
-    SPECIAL_TEXT_FILES,
+    DEFAULT_EXCLUDED_DIRS,
+    DEFAULT_CACHE_RELATIVE_PATH,
     _LANGUAGE_BY_EXTENSION,
     _is_excluded_name,
     _is_supported_file,
@@ -36,6 +34,7 @@ from .repository_scanner import (
     ScanWarning,
 )
 
+# Cache schema is deliberately independent from the repository snapshot schema.
 CACHE_SCHEMA_VERSION = "1.0"
 DEFAULT_CACHE_RELATIVE_PATH = Path(".ai-dev-company") / "repository-scan-cache.json"
 MAX_CACHE_BYTES = 64 * 1024 * 1024
@@ -111,7 +110,7 @@ def _policy_sha256(policy: ScanPolicy) -> str:
 
 
 def _stat_fingerprint(file_stat: os.stat_result) -> dict[str, int]:
-    """Build a conservative identity/metadata fingerprint."""
+    """Build a conservative identity and metadata fingerprint."""
 
     return {
         "device": int(file_stat.st_dev),
@@ -258,6 +257,7 @@ def _validate_cache_entry(path: str, value: Any) -> dict:
 
     for key in _FINGERPRINT_FIELDS:
         item = fingerprint[key]
+
         if not isinstance(item, int) or isinstance(item, bool):
             raise ValueError("Cache fingerprint values must be integers.")
 
@@ -310,7 +310,12 @@ def _load_cache(
         raw = cache_path.read_bytes()
         payload = json.loads(raw.decode("utf-8"))
 
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+    except (
+        OSError,
+        UnicodeDecodeError,
+        json.JSONDecodeError,
+        ValueError,
+    ) as exc:
         return {}, "invalid", f"Cache could not be read or parsed: {exc}"
 
     if not isinstance(payload, dict):
@@ -335,9 +340,14 @@ def _load_cache(
         if key != "cache_sha256"
     }
 
+    try:
+        calculated_digest = _sha256_json(core)
+    except (TypeError, ValueError):
+        return {}, "invalid", "Cache contains non-canonical JSON values."
+
     if (
         not isinstance(supplied_digest, str)
-        or supplied_digest != _sha256_json(core)
+        or supplied_digest != calculated_digest
     ):
         return {}, "invalid", "Cache integrity digest does not match."
 
@@ -374,23 +384,40 @@ def _cache_path_for(
     requested_path: str | os.PathLike[str] | None,
     policy: ScanPolicy,
 ) -> Path:
-    """Resolve cache location and prevent it from being indexed as source."""
+    """Resolve cache location and prevent self-indexing or symlink escapes."""
 
     if requested_path is None:
         candidate = root / DEFAULT_CACHE_RELATIVE_PATH
     else:
         candidate = Path(requested_path).expanduser()
+
         if not candidate.is_absolute():
             candidate = root / candidate
 
-    # Do not follow a symlink when reading or replacing the cache.
-    if candidate.is_symlink():
-        raise ValueError("The scan cache path cannot be a symbolic link.")
+    candidate = Path(os.path.abspath(candidate))
+
+    # Reject symlinks in the cache path and all existing parent components.
+    for component in (*reversed(candidate.parents), candidate):
+        if component.is_symlink():
+            raise ValueError(
+                "The scan cache path cannot pass through symbolic links."
+            )
 
     if candidate.exists() and not candidate.is_file():
         raise ValueError("The scan cache path must be a regular file.")
 
     resolved = candidate.resolve()
+
+    try:
+        lexical_relative = candidate.relative_to(root)
+    except ValueError:
+        lexical_relative = None
+
+    if lexical_relative is not None and not resolved.is_relative_to(root):
+        raise ValueError(
+            "The scan cache path resolves outside the repository through "
+            "a symbolic link."
+        )
 
     if resolved.is_relative_to(root):
         relative = resolved.relative_to(root)
@@ -400,6 +427,7 @@ def _cache_path_for(
             part.casefold() in policy.excluded_dirs
             for part in parts[:-1]
         )
+
         excluded_filename = _is_excluded_name(
             relative.name,
             policy.excluded_patterns,
@@ -440,6 +468,12 @@ def _write_cache(
         separators=(",", ":"),
         ensure_ascii=False,
     ) + "\n"
+
+    if len(serialized.encode("utf-8")) > MAX_CACHE_BYTES:
+        raise ValueError(
+            "The generated scan cache exceeds the maximum cache size. "
+            "Use a narrower scan policy or a larger cache implementation."
+        )
 
     cache_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -487,7 +521,9 @@ def _entry_for(
     }
 
 
-def _restore_entry(value: dict) -> tuple[FileRecord | None, ScanWarning | None]:
+def _restore_entry(
+    value: dict,
+) -> tuple[FileRecord | None, ScanWarning | None]:
     return (
         _record_from_cache(value["record"]),
         _warning_from_cache(value["warning"]),
@@ -504,15 +540,16 @@ def scan_repository_incremental(
 ) -> IncrementalScanResult:
     """Create an incremental snapshot using a validated metadata cache.
 
-    Unchanged files are reused only when device, inode, type, size, mtime,
-    ctime, scanner schema, repository root, and policy fingerprint match.
+    Unchanged files are reused only when device, inode, file type, size,
+    mtime, ctime, scanner schema, repository root, and policy fingerprint
+    match.
 
     `verify_unchanged=True` reads and hashes every eligible file even when
-    metadata matches. `force_full=True` ignores all cached entries and
+    metadata matches. `force_full=True` ignores every cached entry and
     rebuilds the cache from the current repository.
 
-    Directory traversal is always performed, so added and deleted paths are
-    discovered. The cache never stores source contents.
+    Directory traversal always occurs, so added and deleted paths are found.
+    The cache never stores source contents.
     """
 
     if not isinstance(verify_unchanged, bool):
@@ -661,7 +698,7 @@ def scan_repository_incremental(
                 and cached["fingerprint"] == before_fingerprint
                 and not verify_unchanged
             ):
-                # Recheck metadata after the cache lookup to reduce races.
+                # Recheck metadata after cache lookup to reduce scan races.
                 try:
                     after = candidate.lstat()
                 except OSError as exc:
@@ -793,7 +830,6 @@ def scan_repository_incremental(
             )
 
             records.append(record)
-
             new_entries[relative] = _entry_for(
                 after_fingerprint,
                 record=record,
