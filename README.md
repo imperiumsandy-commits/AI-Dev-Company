@@ -81,7 +81,16 @@ Company, project, and agent registration, versioned configuration, status manage
 
 `company_os/context/`
 
-Repository scanning, dependency mapping, Git change detection, Git revision analysis, change-impact analysis, and incremental scanning.
+- Repository inventory and content hashing.
+- Python dependency mapping.
+- Git change and historical revision analysis.
+- Direct and transitive change-impact analysis.
+- Incremental scan cache and strict verification.
+- L0 company context compilation from validated registry state.
+- Version-controlled company operating-policy catalog.
+- Deterministic context serialization, integrity digest, and explicit heuristic token budget.
+
+The L0 compiler contains company identity, the canonical primary project, the eight specialist records, specification-readiness status, operating policies, and current storage boundaries. It does not compile L1-L4 task or specialist context.
 
 ### Existing Active Memory Prototype
 
@@ -97,7 +106,7 @@ This is a local SQLite prototype. It is not yet a cloud-shared memory system.
 
 `tests/`
 
-Automated tests for registry, memory, repository scanning, dependencies, incremental scanning, and change-impact functionality.
+Automated tests cover registry contracts, memory, repository scanning, dependencies, incremental scanning, change impact, integrated foundation behaviour, and the L0 company context contract.
 
 ### Other Existing Files
 
@@ -109,17 +118,17 @@ Automated tests for registry, memory, repository scanning, dependencies, increme
 
 | Component | Current evidence | Status |
 |---|---|---|
-| F01 Registry | SQLite registry and automated tests | Implemented prototype |
-| F02 Repository intelligence | Scanner, dependencies, Git and impact analysis | Implemented prototype |
-| F03 Persistent memory | Local SQLite memories, tasks and checkpoints | Partial |
-| F04 Context compiler | No completed compiler or token-budget engine | Pending |
-| F05 Incremental audit | Incremental scan cache, but no complete audit evidence ledger | Partial |
-| Governance | Registry audit events exist; full authorization system missing | Partial |
-| F06 Agent runtime | Basic specification loader; no shared executor | Pending |
-| F07 Quality engine | CI and tests exist; AI review/refinement missing | Pending |
-| F08 BA / PM activation | Source material exists; integrated specialist package missing | Pending |
+| F01 Registry | SQLite registry, canonical eight-specialist contract, transactional bootstrap, audit-chain validation, regression tests | Implemented prototype; latest verified baseline CI passed |
+| F02 Repository intelligence | Scanner, dependencies, Git and impact analysis, incremental scan cache | Implemented prototype |
+| F03 Persistent memory | Local SQLite memories, tasks, events, checkpoints, and retry-safe Foundation bindings | Partial; local-only storage |
+| F04 Context compiler | L0 company packet, policy catalog, deterministic serialization, digest, heuristic token budget | Partial; L1-L4 retrieval and compilation remain pending |
+| F05 Incremental audit | Incremental scan cache and strict verification primitives | Partial; complete engineering evidence ledger and invalidation remain pending |
+| Governance | Registry audit events and configuration guardrails | Partial; full authorization and high-risk approval service missing |
+| F06 Agent runtime | Basic specification loader and eight registry identities | Pending; no shared executor or provider gateway |
+| F07 Quality engine | CI and regression tests | Partial; independent AI review/refinement and full security gates missing |
+| F08 BA / PM activation | Source material exists | Pending; integrated specialist package, runtime, and evaluations missing |
 
-These statuses describe the current repository, not future commitments.
+These statuses describe the repository's implemented scope, not future commitments. A successful CI run verifies only the checks executed by that workflow.
 
 ## 6. Architecture Principles
 
@@ -144,7 +153,7 @@ Completion requires:
 
 ### Controlled context
 
-A specialist receives only the company rules, project knowledge, domain instructions, dependencies, source files, and verification evidence necessary for its assignment.
+L0 provides verified company identity and company-wide operating policies. Later context levels add project requirements, specialist contracts, task-specific source and dependency information, and deep verification evidence. The compiler must disclose scope and omitted sections rather than imply that L0 is a complete project context.
 
 ### Independent specialist ownership
 
@@ -221,39 +230,34 @@ The current implementation is not yet a production-ready autonomous engineering 
 
 Outstanding engineering work includes:
 
-- Integration between registry and persistent memory.
-- Shared persistent storage.
-- Context retrieval and context compilation.
-- Token-budget management.
-- Audit evidence storage and invalidation.
+- L1-L4 context compilation, retrieval ranking, source-level context selection, and provider-aware tokenization. L0 uses a documented byte-based token estimate, not an exact model tokenizer.
+- Complete audit evidence storage, source/test evidence invalidation, and approval binding.
 - Recovery and execution orchestration.
-- Specialist specification packages and independent runtime.
-- Model-provider integration.
-- Security and approval enforcement.
-- Independent AI code review and refinement.
+- Eight independent specialist specification packages, evaluation scenarios, and a shared runtime.
+- Model-provider integration and provider-specific capability handling.
+- Enforceable security authorization and high-risk owner approval.
+- Independent AI code review and evidence-backed refinement.
 - Production deployment and monitoring.
+- Shared multi-session storage.
 
-SQLite is the current storage prototype. PostgreSQL is a future architectural target, not an already integrated dependency.
+The registry and memory are separate local SQLite databases. Foundation bindings validate their company/project identity, but do not create a distributed atomic transaction. PostgreSQL is a future architectural target, not an already integrated dependency.
 
-## 11. Project Roadmap
+The current agent loader only reads specification files. It does not invoke a model or execute an agent. The current repository tree still needs the eight independently authored specification directories.
 
-The next engineering milestones are:
+## 11. L0 Context Compilation
 
-1. Foundation and repository stabilization.
-2. F01 Registry contract hardening.
-3. F02 Repository Intelligence hardening.
-4. F03 Persistent Memory integration.
-5. F04 Context Compiler.
-6. F05 Incremental Audit and evidence ledger.
-7. Security, governance, and approvals.
-8. Quality and refinement engine.
-9. Shared Agent Runtime.
-10. Business Analyst / PM pilot.
-11. Activation of the remaining seven specialists.
-12. Platform API, integrations, dashboard, and deployment.
+The current first context level is compiled from validated Foundation state:
 
-Milestones are completed through working implementations and acceptance tests, not documentation alone.
+- Company identity and status from the canonical registry.
+- Primary project identity, repository URL, and default branch from the canonical registry.
+- Exactly eight registered specialist records in canonical roster order.
+- A read-only summary of each specialist's specification readiness.
+- Version-controlled company operating policies with explicit enforcement status and limitations.
+- The current two-database SQLite storage boundary.
 
----
+The compiler refuses to produce a packet when Foundation validation fails, when the registered roster does not match the canonical catalog, or when required L0 content exceeds the available context budget. It does not silently truncate company identity or policy rules, and it does not write to project memory.
 
-**Project engineering rule: Build fewer, stronger, integrated components. Verify every batch. Preserve project history. Never confuse planned architecture with implemented functionality.**
+Run from an initialized repository after the integrated Foundation has been bootstrapped:
+
+```bash
+python -m company_os.context.l0_cli --root .
