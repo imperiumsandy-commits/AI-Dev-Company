@@ -77,7 +77,7 @@ def test_cli_includes_impact_report_for_changed_file(
 
     output_text = capsys.readouterr().out
 
-    assert "Change impact: 2 impacted files" in output_text
+    assert "Current impact: 2 impacted files" in output_text
 
 
 def test_cli_supports_multiple_changed_arguments(
