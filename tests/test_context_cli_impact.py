@@ -56,7 +56,7 @@ def test_cli_includes_impact_report_for_changed_file(
 
     impact = payload["change_impact"]
 
-    assert payload["schema_version"] == "1.2"
+    assert payload["schema_version"] == "1.3"
     assert payload["snapshot_sha256"] == payload["repository"]["snapshot_sha256"]
 
     assert impact["schema_version"] == "1.1"
@@ -225,7 +225,7 @@ def test_cli_keeps_impact_field_stable_when_not_requested(
         output.read_text(encoding="utf-8")
     )
 
-    assert payload["schema_version"] == "1.2"
+    assert payload["schema_version"] == "1.3"
     assert "change_impact" in payload
     assert payload["change_impact"] is None
     assert payload["git_changes"] is None
