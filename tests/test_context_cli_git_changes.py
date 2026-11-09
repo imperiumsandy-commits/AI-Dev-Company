@@ -99,6 +99,7 @@ def test_cli_builds_git_change_and_current_impact_reports(
         "pkg/core.py",
         "VALUE = 100\n",
     )
+
     commit_all(tmp_path, "modify core")
 
     output = tmp_path / ".ai-dev-company" / "repository-index.json"
@@ -106,12 +107,13 @@ def test_cli_builds_git_change_and_current_impact_reports(
 
     git_changes = payload["git_changes"]
 
+    assert payload["schema_version"] == "1.4"
+
     assert git_changes["change_count"] == 1
     assert git_changes["base_commit"] == base_commit
     assert git_changes["changes"][0]["status"] == "M"
     assert git_changes["changes"][0]["path"] == "pkg/core.py"
 
-    assert payload["schema_version"] == "1.3"
     assert payload["change_impact_status"]["status"] == "computed"
 
     impact = payload["change_impact"]
@@ -130,6 +132,7 @@ def test_cli_builds_git_change_and_current_impact_reports(
     }
 
     assert payload["historical_change_impact"] is None
+
     assert (
         payload["historical_change_impact_status"]["status"]
         == "no_removed_paths"
@@ -148,6 +151,7 @@ def test_deleted_file_uses_historical_dependency_graph(
     base_commit = commit_all(tmp_path, "base project")
 
     (tmp_path / "pkg" / "legacy.py").unlink()
+
     commit_all(tmp_path, "remove legacy module")
 
     output = tmp_path / ".ai-dev-company" / "repository-index.json"
@@ -173,6 +177,7 @@ def test_deleted_file_uses_historical_dependency_graph(
     assert historical_report["changed_files"] == [
         "pkg/legacy.py"
     ]
+
     assert historical_report["impacted_count"] == 1
     assert historical_report["direct_count"] == 1
 
@@ -208,6 +213,7 @@ def test_renamed_file_uses_old_path_for_historical_impact(
         "pkg/legacy.py",
         "pkg/modern.py",
     )
+
     commit_all(tmp_path, "rename legacy module")
 
     output = tmp_path / ".ai-dev-company" / "repository-index.json"
@@ -227,6 +233,7 @@ def test_renamed_file_uses_old_path_for_historical_impact(
     historical = payload["historical_change_impact"]
 
     assert historical is not None
+
     assert historical["impact_report"]["changed_files"] == [
         "pkg/legacy.py"
     ]
