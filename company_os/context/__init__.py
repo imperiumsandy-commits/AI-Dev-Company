@@ -6,6 +6,15 @@ from .company_policies import (
     OperatingPolicy,
     validate_policy_catalog,
 )
+from .context_layers import (
+    L1_CONTEXT_SCHEMA,
+    L1ContextBudgetExceeded,
+    L1ContextCompilationError,
+    L1ContextSelectionLimitExceeded,
+    L1ContextSensitiveDataError,
+    compile_l1_project_context,
+    write_l1_context_packet,
+)
 from .dependency_mapper import (
     DependencyReport,
     map_python_dependencies,
@@ -45,6 +54,7 @@ from .repository_scanner import (
     scan_repository,
 )
 
+
 __all__ = [
     "COMPANY_OPERATING_POLICIES",
     "ContextBudgetExceeded",
@@ -60,6 +70,11 @@ __all__ = [
     "ImpactedFile",
     "IncrementalScanResult",
     "IncrementalScanStats",
+    "L1_CONTEXT_SCHEMA",
+    "L1ContextBudgetExceeded",
+    "L1ContextCompilationError",
+    "L1ContextSelectionLimitExceeded",
+    "L1ContextSensitiveDataError",
     "OperatingPolicy",
     "POLICY_CATALOG_VERSION",
     "RepositorySnapshot",
@@ -67,6 +82,7 @@ __all__ = [
     "ScanWarning",
     "analyze_change_impact",
     "compile_l0_company_context",
+    "compile_l1_project_context",
     "detect_git_changes",
     "load_git_revision_dependencies",
     "map_python_dependencies",
@@ -74,4 +90,5 @@ __all__ = [
     "scan_repository_incremental",
     "validate_policy_catalog",
     "write_context_packet",
+    "write_l1_context_packet",
 ]
