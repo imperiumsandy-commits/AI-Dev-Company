@@ -149,15 +149,24 @@ class MemoryStore:
             conn.close()
 
     def initialize(self) -> None:
-        """Create the schema and seed memory exactly once.
+        """Create schema and seed memory exactly once under concurrency.
 
-        Schema creation is safe to retry. Metadata and seed creation are
-        serialized so concurrent application starts cannot duplicate seeds.
+        Do not change SQLite journal_mode here. Switching a database from its
+        current journal mode requires an exclusive lock. Multiple processes
+        starting against a new database can race on PRAGMA journal_mode=WAL
+        and receive SQLITE_BUSY/SQLITE_LOCKED before the busy handler can
+        reliably serialize the transition.
+
+        Existing databases retain their current journal mode. New databases
+        use SQLite's default mode. Schema creation and seed initialization
+        are serialized with BEGIN IMMEDIATE in separate write transactions.
         """
         with self._connection() as conn:
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.executescript(
-                """
+            # DDL must be one serialized transaction. Without this boundary,
+            # concurrent first-start workers can interleave CREATE statements.
+            schema_script = """
+                BEGIN IMMEDIATE;
+
                 CREATE TABLE IF NOT EXISTS project_meta (
                     key TEXT PRIMARY KEY,
                     value_json TEXT NOT NULL,
@@ -176,6 +185,7 @@ class MemoryStore:
                     updated_at TEXT NOT NULL,
                     archived INTEGER NOT NULL DEFAULT 0
                 );
+
                 CREATE INDEX IF NOT EXISTS idx_memories_scope_time
                     ON memories(scope, created_at DESC);
 
@@ -192,6 +202,7 @@ class MemoryStore:
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
+
                 CREATE INDEX IF NOT EXISTS idx_tasks_agent_status
                     ON tasks(agent_id, status, updated_at DESC);
 
@@ -204,6 +215,7 @@ class MemoryStore:
                     entity_id TEXT NOT NULL,
                     payload_json TEXT NOT NULL
                 );
+
                 CREATE INDEX IF NOT EXISTS idx_events_time
                     ON events(event_id DESC);
 
@@ -213,8 +225,16 @@ class MemoryStore:
                     payload_json TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
-                """
-            )
+
+                COMMIT;
+            """
+
+            try:
+                conn.executescript(schema_script)
+            except Exception:
+                if conn.in_transaction:
+                    conn.rollback()
+                raise
 
             # BEGIN IMMEDIATE serializes metadata and bootstrap seed writes.
             conn.execute("BEGIN IMMEDIATE")
