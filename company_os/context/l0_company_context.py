@@ -37,8 +37,11 @@ from .company_policies import (
 
 
 L0_CONTEXT_SCHEMA = "company-context.l0.v1"
-DEFAULT_MAX_CONTEXT_TOKENS = 6000
-DEFAULT_RESERVED_OUTPUT_TOKENS = 1200
+# L0 carries mandatory company identity, eight specialist records, storage boundaries,
+# and the complete policy catalog. Keep a 20% minimum growth margin in CI tests;
+# the byte-based token estimate is deliberately conservative and provider-neutral.
+DEFAULT_MAX_CONTEXT_TOKENS = 8000
+DEFAULT_RESERVED_OUTPUT_TOKENS = 1600
 _TOKEN_ESTIMATION_METHOD = "ceil(UTF-8 serialized bytes / 3); heuristic, not provider-tokenizer exact"
 
 
