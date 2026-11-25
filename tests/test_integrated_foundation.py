@@ -1,10 +1,13 @@
+import json
 import sqlite3
 
 import pytest
 
 from ai_dev_company.memory_store import MemoryStore
 from company_os.foundation import (
+    BACKUP_SNAPSHOT_CONSISTENCY,
     CURRENT_DELIVERY_POLICY_TITLE,
+    LEGACY_BACKUP_CONSISTENCY,
     LEGACY_DELIVERY_POLICY_TITLE,
     COMPANY_ID,
     PROJECT_ID,
@@ -28,6 +31,41 @@ def bootstrap(service):
         actor="test-suite",
         reason="integration test",
     )
+
+
+def _assert_database_writer_is_blocked(database_path):
+    """Assert a second connection cannot acquire a writer reservation."""
+    contender = sqlite3.connect(
+        str(database_path),
+        timeout=0.05,
+        isolation_level=None,
+    )
+
+    try:
+        contender.execute("PRAGMA busy_timeout=50")
+
+        with pytest.raises(sqlite3.OperationalError, match="locked"):
+            contender.execute("BEGIN IMMEDIATE")
+    finally:
+        if contender.in_transaction:
+            contender.rollback()
+        contender.close()
+
+
+def _assert_database_writer_is_available(database_path):
+    """Assert a released backup barrier no longer blocks database writers."""
+    contender = sqlite3.connect(
+        str(database_path),
+        timeout=1,
+        isolation_level=None,
+    )
+
+    try:
+        contender.execute("PRAGMA busy_timeout=1000")
+        contender.execute("BEGIN IMMEDIATE")
+        contender.rollback()
+    finally:
+        contender.close()
 
 
 def test_legacy_memory_migration_archives_old_policy_without_deleting_it(
@@ -359,9 +397,20 @@ def test_verified_backup_can_be_restored_without_overwriting(
 
     assert backup_result["created"] is True
     assert backup_result["verified"] is True
+    assert backup_result["snapshot_consistency"] == (
+        BACKUP_SNAPSHOT_CONSISTENCY
+    )
+    assert backup_result["snapshot_id"]
 
     verification = FoundationService.verify_backup(backup_dir)
     assert verification["verified"] is True
+    assert verification["snapshot_consistency"] == (
+        BACKUP_SNAPSHOT_CONSISTENCY
+    )
+    assert set(verification["database_hashes"]) == {
+        "company_registry.sqlite3",
+        "project_memory.sqlite3",
+    }
 
     restored_root = tmp_path / "restored-project"
     restore_result = FoundationService.restore_backup(
@@ -371,6 +420,9 @@ def test_verified_backup_can_be_restored_without_overwriting(
 
     assert restore_result["restored"] is True
     assert restore_result["overwrite_performed"] is False
+    assert restore_result["snapshot_consistency"] == (
+        BACKUP_SNAPSHOT_CONSISTENCY
+    )
 
     restored = FoundationService(restored_root)
     validation = restored.validate()
@@ -424,3 +476,141 @@ def test_restore_refuses_to_overwrite_existing_state(project_root, tmp_path):
         FoundationService.restore_backup(backup_dir, target_root)
 
     assert sentinel.read_text(encoding="utf-8") == "existing state"
+
+
+def test_backup_holds_both_database_write_barriers_until_copies_finish(
+    project_root,
+    tmp_path,
+    monkeypatch,
+):
+    service = FoundationService(project_root)
+    bootstrap(service)
+
+    database_paths = (
+        service.registry_path,
+        service.memory.db_path,
+    )
+    original_backup = service._backup_sqlite
+    copied_databases = []
+
+    def checked_backup(source, destination):
+        # Both locks must already exist before the first database is copied.
+        for database_path in database_paths:
+            _assert_database_writer_is_blocked(database_path)
+
+        copied_databases.append(source.name)
+        original_backup(source, destination)
+
+    monkeypatch.setattr(service, "_backup_sqlite", checked_backup)
+
+    backup_dir = tmp_path / "backups" / "coordinated-snapshot"
+    result = service.create_backup(backup_dir)
+
+    assert result["created"] is True
+    assert result["verified"] is True
+    assert len(copied_databases) == 2
+    assert set(copied_databases) == {
+        service.registry_path.name,
+        service.memory.db_path.name,
+    }
+
+    # A successful backup must release the source locks.
+    for database_path in database_paths:
+        _assert_database_writer_is_available(database_path)
+
+
+def test_backup_releases_both_write_barriers_when_copy_fails(
+    project_root,
+    tmp_path,
+    monkeypatch,
+):
+    service = FoundationService(project_root)
+    bootstrap(service)
+
+    database_paths = (
+        service.registry_path,
+        service.memory.db_path,
+    )
+
+    def fail_after_barrier(source, destination):
+        for database_path in database_paths:
+            _assert_database_writer_is_blocked(database_path)
+
+        raise RuntimeError("simulated backup copy failure")
+
+    monkeypatch.setattr(service, "_backup_sqlite", fail_after_barrier)
+
+    backup_dir = tmp_path / "backups" / "failed-snapshot"
+
+    with pytest.raises(RuntimeError, match="simulated backup copy failure"):
+        service.create_backup(backup_dir)
+
+    assert not backup_dir.exists()
+    assert not list(
+        backup_dir.parent.glob(f".{backup_dir.name}.tmp-*")
+    )
+
+    # Failure cleanup must release every lock, not just the first one.
+    for database_path in database_paths:
+        _assert_database_writer_is_available(database_path)
+
+
+def test_backup_verification_rejects_incomplete_snapshot_lock_metadata(
+    project_root,
+    tmp_path,
+):
+    service = FoundationService(project_root)
+    bootstrap(service)
+
+    backup_dir = tmp_path / "backups" / "tampered-snapshot-metadata"
+    service.create_backup(backup_dir)
+
+    manifest_path = backup_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    manifest["snapshot"]["locked_databases"] = [
+        "company_registry.sqlite3"
+    ]
+
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        FoundationIntegrityError,
+        match="both coordinated database locks",
+    ):
+        FoundationService.verify_backup(backup_dir)
+
+
+def test_legacy_version_one_backup_remains_verifiable(
+    project_root,
+    tmp_path,
+):
+    service = FoundationService(project_root)
+    bootstrap(service)
+
+    backup_dir = tmp_path / "backups" / "legacy-version-one"
+    service.create_backup(backup_dir)
+
+    manifest_path = backup_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    # Simulate a backup written before coordinated snapshot metadata existed.
+    manifest.pop("snapshot")
+
+    manifest_path.write_text(
+        json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+
+    verification = FoundationService.verify_backup(backup_dir)
+
+    assert verification["verified"] is True
+    assert verification["snapshot_consistency"] == (
+        LEGACY_BACKUP_CONSISTENCY
+    )
+    assert verification["snapshot_id"] is None
