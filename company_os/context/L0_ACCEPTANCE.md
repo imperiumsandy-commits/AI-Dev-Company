@@ -2,11 +2,11 @@
 
 **Component:** AI-Dev-Company Company OS  
 **Context level:** L0 — Company Identity and Operating Policies  
-**Contract version:** 1.1  
+**Contract version:** 1.2  
 **Implementation:** `company_os/context/l0_company_context.py`  
 **Policy catalog:** `company_os/context/company_policies.py`  
 **Specialist specifications:** `agents/<specialist-slug>/agent.yaml`  
-**Automated tests:** `tests/test_l0_company_context.py`
+**Automated tests:** `tests/test_l0_company_context.py`, `tests/test_l0_context_budget_defaults.py`
 
 ---
 
@@ -176,11 +176,27 @@ The compiler accepts a maximum context budget and reserved output budget.
 
 `available_context_tokens = max_context_tokens - reserved_output_tokens`
 
+The default L0 budget is:
+
+- Maximum context budget: `8,000` tokens.
+- Reserved output budget: `1,600` tokens.
+- Available context budget: `6,400` tokens.
+
+These are configurable safety defaults, not universal provider limits. The CLI
+and compiler use the same defaults. A provider adapter must supply provider-
+specific limits and an exact tokenizer when one is available.
+
 The current deterministic estimate is:
 
 `ceil(UTF-8 serialized bytes / 3)`
 
-This is a heuristic, not an exact tokenizer for any model provider.
+This is a deliberately conservative heuristic, not an exact tokenizer for any
+model provider. CI must verify that the default available budget contains at
+least 20% headroom over the complete required L0 packet. This protects room
+for controlled policy/catalog growth without permitting silent truncation.
+When that headroom gate fails, adjust the approved budget or reduce redundant
+serialization through a reviewed contract change; do not weaken required
+identity, roster, or policy content.
 
 The packet must disclose maximum, reserved, available and estimated tokens,
 estimation method, truncation state and omitted sections.
