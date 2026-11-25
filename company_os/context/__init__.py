@@ -53,6 +53,14 @@ from .repository_scanner import (
     ScanWarning,
     scan_repository,
 )
+from .specialist_context import (
+    L2_CONTEXT_SCHEMA,
+    L2ContextBudgetExceeded,
+    L2ContextCompilationError,
+    L2SpecialistTaskOwnershipError,
+    compile_l2_specialist_context,
+    write_l2_context_packet,
+)
 
 
 __all__ = [
@@ -75,6 +83,10 @@ __all__ = [
     "L1ContextCompilationError",
     "L1ContextSelectionLimitExceeded",
     "L1ContextSensitiveDataError",
+    "L2_CONTEXT_SCHEMA",
+    "L2ContextBudgetExceeded",
+    "L2ContextCompilationError",
+    "L2SpecialistTaskOwnershipError",
     "OperatingPolicy",
     "POLICY_CATALOG_VERSION",
     "RepositorySnapshot",
@@ -83,6 +95,7 @@ __all__ = [
     "analyze_change_impact",
     "compile_l0_company_context",
     "compile_l1_project_context",
+    "compile_l2_specialist_context",
     "detect_git_changes",
     "load_git_revision_dependencies",
     "map_python_dependencies",
@@ -91,4 +104,5 @@ __all__ = [
     "validate_policy_catalog",
     "write_context_packet",
     "write_l1_context_packet",
+    "write_l2_context_packet",
 ]
