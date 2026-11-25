@@ -1,10 +1,12 @@
 
 # AI-Dev-Company — Foundation Architecture and Engineering Plan
 
-**Architecture Baseline:** 0.2  
+**Architecture Baseline:** 0.3  
 **Repository:** imperiumsandy-commits/AI-Dev-Company  
 **Primary Branch:** main  
-**Review Date:** 2026-11-09  
+**Review Date:** 2026-11-25  
+**Baseline Commit Reviewed:** 18a96acee5ce35b2d6404e3af1a4caf9c4c2063b  
+**Revision Scope:** Consolidated the engineering gaps from plan update into this canonical specification and reconciled implementation status against main.  
 **Document Type:** Engineering Architecture and Execution Specification  
 **Implementation Authority:** Actual GitHub source code and automated verification
 
@@ -65,13 +67,50 @@ An Owner Advocate capability must evaluate proposed decisions against these requ
 
 It must not bypass owner approval.
 
-## 2.2 Project separation
+## 2.2 Project, tenant and workspace separation
 
-Each project must have independent identity, requirements, architecture, memory, repository references, tasks, decisions, and execution history.
+Every project must have independent identity, requirements, architecture, memory, repository references, tasks, decisions, artifacts, and execution history.
 
-No project may accidentally inherit another project's private source files, credentials, or internal context.
+The Company OS must support two first-class business tracks on the same underlying workforce:
+
+1. **Internal delivery:** projects owned by the AI-Dev-Company owner, including the company's own products, websites, applications, SaaS products, and automations.
+2. **Customer delivery:** separately contracted projects owned by external customer tenants and their authorized users.
+
+These tracks may reuse the same approved specialist definitions, model adapters, orchestration services, and platform infrastructure. They must not share private project data or execution authority.
+
+A tenant is the top-level security and commercial boundary. A tenant may contain one or more workspaces; a workspace may contain one or more projects. The internal company workspace is not a customer workspace.
+
+Tenant isolation must cover, at minimum:
+
+- Project requirements, decisions, memory, task history, and context packets.
+- Source repositories, branches, workspaces, generated artifacts, and backups.
+- Credentials, provider access, tool sessions, and execution environments.
+- Search indexes, caches, embeddings, temporary files, and retrieved documents.
+- Prompts, model responses, logs, traces, test evidence, and support records.
+- Usage, quotas, approvals, invoices, and billing records.
+
+Cross-tenant access is denied by default. A shared runtime or common agent definition does not grant an agent permission to inspect another tenant's data. Shared public company policies and non-sensitive role specifications may be reused only through explicit, read-only, policy-controlled references.
+
+The system must not reuse one customer's private source code, prompts, requirements, credentials, or deliverables for another customer's work. Customer content must not be used for model training or cross-customer reuse unless a separate explicit agreement, lawful basis, and enforceable technical policy authorize that use.
+
+Tenant membership, data ownership, retention, export, deletion, and any legal hold must have explicit records and auditable lifecycle rules. Deletion must include defined treatment of replicas and backups; a deletion request must not be represented as complete while retained copies remain outside the declared retention policy.
 
 AI-Dev-Company must remain independent from Intellect Media.
+
+## 2.3 Customer and commercial service boundary
+
+The future customer-facing platform must support:
+
+- Customer onboarding and tenant creation.
+- Workspace and project creation.
+- Customer membership, roles, invitations, and access revocation.
+- Project requirements, approvals, milestones, and delivery status.
+- Deliverable review, acceptance, revision requests, and handover.
+- Service plans, quotas, metering, usage records, and billing.
+- Support requests, incidents, and project communication.
+- Customer offboarding, export, retention, and deletion workflows.
+
+Billing and customer-facing screens may be delivered in a later platform phase. Their identity, data ownership, metering, and authorization contracts must be designed before the execution system is allowed to process real customer workloads.
 
 # 3. Final Logical Architecture
 
@@ -172,9 +211,29 @@ Target components:
 - Approval Manager.
 - Audit Evidence Ledger.
 
+## Cross-cutting control plane and Company Platform
+
+The four Foundation layers remain the core architecture. The following concerns cut across all four layers; they are not a reason to create duplicate registries or a fifth specialist layer.
+
+- **Identity and tenant control:** canonical company, tenant, workspace, project, user, specialist, and service identities; authentication; authorization; membership; and scope enforcement.
+- **Versioned contracts:** schemas and compatibility rules for tasks, handoffs, context packets, model requests, tool requests, approvals, artifacts, audit events, and provider usage.
+- **Policy and data classification:** sensitivity labels, allowed processing locations/providers, retention rules, and enforcement decisions.
+- **Correlation and provenance:** stable identifiers linking a request to its task, specialist, provider calls, tools, artifacts, verification, approvals, and final delivery.
+- **Operational control:** quotas, budgets, health, recovery, incident handling, and emergency stop controls.
+
+### Company Platform boundary
+
+The Company Platform is the customer and owner-facing product surface above the four Foundation layers. It exposes authenticated APIs and interfaces for internal project owners and external customer users. It must consume the same canonical Foundation services rather than maintaining a second source of truth.
+
+The platform is not a fifth Foundation layer and must not own specialist reasoning or duplicate registry, memory, execution, or audit logic. It owns user experience, customer lifecycle, commercial workflows, and presentation of authoritative service state.
+
+### Shared workforce, isolated execution
+
+The eight specialist identities and approved orchestration services may be shared as controlled infrastructure. Every actual task execution must carry an explicit tenant, workspace, and project scope. Repository access, memory retrieval, tool sessions, credentials, scratch space, artifacts, and provider data handling must be restricted to that scope.
+
 These are logical responsibilities. They do not require one Python file per component. Closely related responsibilities should remain together when doing so preserves clear ownership and maintainability.
 
-# 4. Eight Independent Specialist Architects
+# 4. Eight Independent Specialist Agents
 
 The company will operate eight specialized developer identities.
 
@@ -243,104 +302,108 @@ Runtime readiness requires a valid specification, available tools, authorized pe
 
 # 5. Current Repository Baseline
 
-The following is the observed implementation baseline, not a future-state diagram.
+This section records observed implementation, not planned capability. It was reconciled against the main branch commit 18a96acee5ce35b2d6404e3af1a4caf9c4c2063b on 2026-11-25. A file's presence is not proof that its capability is operational or production-ready.
 
 ## 5.1 Registry
 
-Existing paths:
+Existing paths include:
 
-- `company_os/registry/core.py`
-- `company_os/registry/catalog.py`
-- `company_os/registry/company_registry.py`
-- `company_os/registry/project_registry.py`
-- `company_os/registry/agent_registry.py`
-- `company_os/registry/cli.py`
+- company_os/registry/core.py
+- company_os/registry/catalog.py
+- company_os/registry/company_registry.py
+- company_os/registry/project_registry.py
+- company_os/registry/agent_registry.py
+- company_os/registry/service.py
+- company_os/registry/cli.py
+- company_os/registry/__main__.py
 
-Current capabilities:
+Current implementation includes SQLite-backed company, project, and specialist records; canonical eight-specialist catalog checks; configuration records; schema/version checks; transactional bootstrap validation; lifecycle state; audit-event integrity checks; and registry service integration.
 
-- Company registration.
-- Project registration.
-- Agent registration.
-- Configuration storage.
-- Version-controlled configuration updates.
-- Status transitions.
-- Transactional bootstrap.
-- Audit event hash chain.
-- Integrity validation.
-
-Storage is SQLite.
-
-The initial catalog defines eight specialist identities.
-
-The registry is an implementation prototype, not a complete authorization or execution platform.
+The registry is an initial Company OS identity/configuration foundation. It is not yet a complete multi-tenant customer identity, membership, authorization, billing, or production control plane. The current canonical registry contains the company, the AI-Dev-Company project, and the eight specialist identities; it must not be described as a customer SaaS tenant registry.
 
 ## 5.2 Repository Intelligence
 
-Existing paths:
+Existing paths include:
 
-- `company_os/context/repository_scanner.py`
-- `company_os/context/dependency_mapper.py`
-- `company_os/context/git_changes.py`
-- `company_os/context/git_snapshot.py`
-- `company_os/context/impact_analyzer.py`
-- `company_os/context/incremental_scanner.py`
-- `company_os/context/__main__.py`
+- company_os/context/repository_scanner.py
+- company_os/context/dependency_mapper.py
+- company_os/context/git_changes.py
+- company_os/context/git_snapshot.py
+- company_os/context/impact_analyzer.py
+- company_os/context/incremental_scanner.py
+- company_os/context/__main__.py
 
-Current capabilities:
+Current capabilities include repository inventory, file metadata and SHA-256 records, supported-language detection, Python dependency mapping, committed Git change detection, historical revision analysis, change-impact reports, incremental metadata-cache reuse, cache validation, and optional strict content verification.
 
-- Repository file inventory.
-- File metadata and SHA-256 records.
-- Supported-language detection.
-- Python dependency mapping.
-- Committed Git change detection.
-- Historical Git revision analysis.
-- Current and historical change-impact reports.
-- Incremental metadata-cache reuse.
-- Cache validation and refresh.
-- Optional strict content verification.
+Metadata-based cache reuse is a performance optimization, not proof against malicious content changes. Security-sensitive and audit-sensitive operations must use strict verification or a full content scan. Repository scanning must not execute scanned source code.
 
-Important limitation:
+## 5.3 Persistent Memory and Foundation Integration
 
-Metadata-based cache reuse is a performance optimization, not tamper-proof audit evidence.
+Existing paths include:
 
-Audit-sensitive operations must use strict verification or a complete content scan.
+- ai_dev_company/memory_store.py
+- company_os/foundation.py
+- ai_dev_company/cli.py
 
-## 5.3 Persistent Memory Prototype
+The memory store provides local SQLite persistence for project and specialist-scoped memory, task records, task-state transitions, event history, and checkpoints. Its database is local to the configured state directory; it is not cloud-shared memory and does not automatically synchronize separate ChatGPT sessions or remote workers.
 
-Existing paths:
+The integrated Foundation service coordinates the canonical registry and project-memory stores. The two SQLite databases remain separate. The service provides coordinated bootstrap, integrity and backup operations; its coordinated backup write barrier is not a distributed application transaction. The module explicitly does not execute agents or call model providers.
 
-- `ai_dev_company/memory_store.py`
-- `ai_dev_company/agent_loader.py`
-- `ai_dev_company/cli.py`
+Current storage paths are documented in Section 7.1. Existing SQLite data must be preserved and verified during future migration; no destructive migration is implied by this architecture revision.
 
-Current capabilities:
+## 5.4 Specialist Specifications and Loader
 
-- Project memory.
-- Specialist-scoped memory.
-- Task records.
-- Task state transitions.
-- Event history.
-- Checkpoints.
-- Basic agent specification discovery.
+All eight canonical specialist manifest files are present on main:
 
-Limitations:
+- agents/business-analyst-pm/agent.yaml
+- agents/system-architect/agent.yaml
+- agents/backend-developer/agent.yaml
+- agents/frontend-developer/agent.yaml
+- agents/database-administrator/agent.yaml
+- agents/cybersecurity-engineer/agent.yaml
+- agents/qa-bug-hunter/agent.yaml
+- agents/devops-engineer/agent.yaml
 
-- SQLite is local to the machine.
-- It is not automatically shared between ChatGPT sessions or cloud workers.
-- The memory store and registry are separate databases.
-- Existing seed instructions contain outdated Git workflow assumptions.
-- The loader expects an `agents/` specification directory that is not currently present in the repository tree.
-- Loading context does not itself invoke an AI model.
+The loader is implemented at ai_dev_company/agent_loader.py. It validates the canonical eight specialist specifications, identity and capability alignment, domain ownership, input/output contracts, workflow stages, tool-policy restrictions, quality gates, memory policy, failure modes, evaluation scenarios, handoffs, and readiness metadata. It can build a bounded specialist context from validated specifications.
 
-These limitations must be resolved through tested integration work.
+The loader is declarative. It does not invoke an LLM, grant runtime tools, authorize privileged actions, start workers, or execute specialist work. The eight manifests being present does not mean eight agents are runtime-ready or active.
 
-## 5.4 Business Analyst / PM Source
+## 5.5 Context Compiler Progress
 
-`business-analyst-pm-batch-01-source.md` contains specialist source material and an executable implementation design.
+The current repository contains L0, L1, and L2 context components:
 
-It must not be treated as an active imported Python package merely because its implementation is documented in Markdown.
+- L0 compiler: company_os/context/l0_company_context.py
+- L0 CLI: company_os/context/l0_cli.py
+- L1 compiler: company_os/context/context_layers.py
+- L1 CLI: company_os/context/l1_cli.py
+- L2 compiler: company_os/context/specialist_context.py
+- L2 CLI: company_os/context/l2_cli.py
+- L0 acceptance specification: company_os/context/L0_ACCEPTANCE.md
+- L2 specialist acceptance specification: company_os/context/SPECIALIST_CONTEXT_ACCEPTANCE.md
 
-The actual specialist package must be created and tested before activation.
+L0 compiles validated company identity and operating-policy context. L1 extends that context with project-scoped knowledge and task backlog. L2 adds one canonical specialist's validated manifest and specialist-owned task scope. These compilers are integrity-gated and read-only; they do not call model providers, execute tasks, grant tools, or activate specialists.
+
+L3 task/source context and L4 deep audit/verification context remain architectural targets and are not yet a complete implemented pipeline. L0-L2 therefore represent meaningful progress, not a complete end-to-end context-to-execution system.
+
+## 5.6 Business Analyst / PM Source Material
+
+business-analyst-pm-batch-01-source.md contains specialist source material and implementation design. It is not itself an active imported runtime package. The Business Analyst / PM manifest and loader validation do not establish that the PM specialist can autonomously plan, delegate, execute, or persist approved decisions.
+
+## 5.7 Latest Observed CI Verification
+
+The latest observed Actions run at this review was:
+
+- Workflow: AI-Dev-Company CI
+- Run: 45603086170
+- Commit: 18a96acee5ce35b2d6404e3af1a4caf9c4c2063b
+- Result: failure
+- Regression result: 171 passed, 10 failed
+
+All 10 failures were caused by the L0 context budget gate: estimated required context was 5,087 tokens while the available budget was 4,800 tokens. The failures affected L0 policy/context tests and the L0 CLI packet-writing test. Package compilation steps succeeded; the complete regression suite did not.
+
+Source: https://github.com/imperiumsandy-commits/AI-Dev-Company/actions/runs/45603086170
+
+This is an open engineering blocker. Required identity and operating policies must not be silently truncated to force a green run. The budget, packet contents, estimator assumptions, and tests must be corrected together, and the resulting full regression run must pass before the affected phase is accepted.
 
 # 6. Canonical Component Ownership
 
@@ -397,6 +460,16 @@ Registry history proves changes to registered entities.
 
 Engineering audit evidence records what was checked, against which source state, with which tests, and with what result.
 
+## 6.6 Tenant and cross-service contract ownership
+
+The Registry is the canonical owner of company, tenant, workspace, project, user-membership, and specialist identity once those entities are introduced. The first implementation may extend the existing registry; a second competing identity database must not be created without an explicit architecture decision.
+
+Memory, Context, Execution, Quality, and the Company Platform must reference canonical identifiers rather than inventing local copies of tenant or project identity. Every service boundary must validate the tenant/workspace/project relationship before reading or writing data.
+
+Shared contracts must be versioned and schema-validated. A producer must declare the schema version it writes; a consumer must reject unsupported versions or use a tested compatibility adapter. Cross-service events must carry stable entity identifiers, event identifiers, schema version, timestamp, actor/service identity, and trace/correlation identifiers.
+
+No component may infer authorization merely from possession of a project ID, agent ID, or context packet.
+
 # 7. Storage Architecture
 
 ## 7.1 Current storage
@@ -442,6 +515,16 @@ Runtime databases, temporary outputs, and secrets must not be committed.
 Provider keys and credentials must never be stored in ordinary memory records, committed source files, logs, or generated context packets.
 
 Use authorized secret-management mechanisms with narrowly scoped permissions.
+
+## 7.5 Tenant-scoped persistence and data lifecycle
+
+The future shared-state schema must make tenant scope explicit for every tenant-owned record. Workspace and project records must be constrained to their parent tenant. Task, memory, event, artifact, approval, usage, and audit references must preserve the same scope.
+
+Tenant isolation must not rely only on UI filtering or a caller remembering to add a WHERE clause. Enforce it through authenticated service boundaries, database constraints and row-level controls where available, storage namespaces, and negative cross-tenant tests. Cache keys, search indexes, temporary paths, object-store keys, and backup/restore procedures must also include and enforce tenant scope.
+
+Define a data classification and retention schedule for customer content, operational telemetry, audit evidence, billing records, secrets, and backups. Deletion and export operations must be idempotent, auditable, and consistent across primary storage, replicas, derived indexes, artifacts, and backup expiry. Legal holds and mandatory record-retention obligations must be explicit exceptions, not undocumented failures.
+
+Shared PostgreSQL storage is acceptable only after tenant-boundary threat modelling, authorization tests, concurrency tests, restore tests, and migration rollback tests pass. Separate databases or cryptographic key boundaries may be selected for higher-risk customer tiers; the choice must be driven by an explicit threat model and service requirements.
 
 # 8. Context Intelligence Architecture
 
@@ -507,6 +590,25 @@ The token manager must:
 8. Report which information was excluded.
 
 Token budgets must be configurable by company, project, provider, and task type.
+
+## 8.4 Context trust, provenance and retrieval security
+
+Every retrieved item must carry enough provenance to explain why it was included. At minimum record its source type, canonical source/reference, tenant/workspace/project scope, source revision or content hash where applicable, author or producing service, observation time, approval state, sensitivity classification, and freshness status.
+
+The compiler must distinguish:
+
+- Approved requirements, policies, and decisions.
+- Verified repository observations and test evidence.
+- Historical or superseded information.
+- Unapproved suggestions and model-generated hypotheses.
+- External or user-supplied content that has not been verified.
+- Contradictory, stale, or unresolved information.
+
+Conflicting authoritative records must be surfaced as a conflict and routed for resolution; the compiler must not silently choose one. Stale information must be labelled or excluded according to a deterministic freshness policy.
+
+Repository files, issue text, web pages, comments, logs, dependency metadata, and other retrieved content are data, not instructions to the agent or model. Treat embedded prompt-injection attempts and tool-use instructions as untrusted content. They must never override company policy, task contracts, system instructions, or tool permissions.
+
+Retrieval must enforce tenant, workspace, project, role, and sensitivity permissions before content enters a prompt or model request. Redact secrets and minimize sensitive content. A context packet must identify its selected source set, versions/hashes, omitted items, truncation decisions, and final digest so that a later reviewer can reconstruct what the specialist actually received.
 
 # 9. Repository Intelligence and Incremental Audit
 
@@ -580,6 +682,14 @@ Previous audit evidence can be reused only when every relevant input remains val
 
 Changes to source code, dependencies, scanner policies, tests, toolchains, or security policy must invalidate affected evidence.
 
+## 9.5 Audit and execution evidence linkage
+
+An audit result must identify the task and execution attempt that produced it, the tenant/workspace/project scope, source commit and relevant file/dependency hashes, context packet digest, agent and role version, model/provider version where used, tool versions, policy version, test environment, and approval reference.
+
+A green historical test or scan result may be reused only when all inputs that can affect that result are unchanged and the reuse decision is itself recorded. A source change, dependency change, context/contract change, scanner or test version change, policy change, or relevant environment change must invalidate the affected evidence.
+
+Audit records must distinguish machine-observed facts, model-generated assessments, human decisions, and final release approvals. Model-generated assessments are not verification evidence unless tied to reproducible checks.
+
 # 10. Task and Execution Infrastructure
 
 ## 10.1 Task lifecycle
@@ -642,6 +752,53 @@ The system must preserve recoverable state at important transitions:
 
 Recovery must not duplicate irreversible actions.
 
+## 10.5 Canonical task and execution envelope
+
+Every task submitted to a worker or model must use a versioned, validated execution envelope. In addition to the task fields in Section 10.2, the envelope must carry:
+
+- Tenant, workspace, project, task, and optional parent-task identifiers.
+- Task-contract schema version and requested specialist identity/role version.
+- Attempt identifier, idempotency key, and end-to-end trace/correlation identifier.
+- Versioned input references and source hashes; large content should be referenced as controlled artifacts rather than copied without limits.
+- Acceptance criteria, expected artifact types, verification policy, and deadline.
+- Requested tool capabilities, approved permission scope, and required human approvals.
+- Provider/data-sensitivity constraints, context budget, and task cost/resource budget.
+- Output artifact references, evidence references, and terminal outcome.
+
+The receiving service must validate identity, scope, schema version, dependencies, and authorization before accepting work. An invalid or unsupported envelope must fail closed with a machine-readable reason.
+
+## 10.6 Specialist handoff contract
+
+A handoff is an explicit contract, not an informal prompt transfer. It must include:
+
+- Sender and recipient specialist IDs and role versions.
+- Parent task and child task identifiers.
+- Handoff reason and the exact decision or workflow trigger.
+- Agreed scope, required next action, and acceptance criteria.
+- Relevant context packet and source/artifact references with hashes.
+- Work completed, tests/checks performed, and evidence produced.
+- Unresolved findings, assumptions, dependencies, and known risks.
+- Required permissions and approvals; whether the recipient is allowed to act or only review.
+- Handoff state, timestamp, and correlation identifier.
+
+The recipient must acknowledge or reject the handoff with a reason. Ownership changes must be recorded. Handoff must not silently transfer privileges or approval authority. A specialist must not approve its own work as an independent verifier.
+
+## 10.7 Concurrency and workspace isolation
+
+Every running task must execute in a project-scoped workspace with an explicit write scope. Concurrent workers must not modify the same working tree or file set without an enforced ownership and conflict protocol.
+
+Use isolated branches/worktrees or equivalent sandboxed workspaces for independent changes. Before integration, validate the base commit, changed-file set, ownership/lock state, and merge result. A stale worker must not overwrite a newer result. Use leases and fencing tokens for distributed worker ownership; a worker whose lease has expired must be unable to commit or publish its stale output.
+
+Task parallelism must respect dependency graphs and shared-resource limits. A task marked complete cannot satisfy a dependency until its required verification state has been reached.
+
+## 10.8 Retry, idempotency and recovery semantics
+
+Do not assume exactly-once delivery across queues, workers, providers, and tools. Design for duplicate delivery with idempotency keys, deduplication records, and idempotent state transitions. Irreversible side effects require a durable intent record and explicit reconciliation after an uncertain outcome.
+
+Retries must be bounded by attempt count, elapsed time, cost budget, and failure category. Retry transient provider/network failures only when the operation is safe to repeat. Do not automatically retry authorization failures, policy violations, invalid contracts, or deterministic test failures as if they were transient.
+
+Checkpoints must record the last committed safe state, input/output artifact references, idempotency state, and recovery decision. Recovery must resume or compensate without duplicating deployments, charges, destructive migrations, notifications, or other irreversible effects. Cancellation and timeout must propagate to child tasks and running tools where supported.
+
 # 11. Model Provider Infrastructure
 
 The system may support multiple authorized model providers.
@@ -668,6 +825,24 @@ Retries must use bounded policies.
 An alternative provider must not be selected if doing so violates task security, data-access, or output requirements.
 
 Provider integration is a future capability; it is not part of the currently active runtime.
+
+## 11.1 Provider adapter contract
+
+Each provider must be integrated through a separately versioned adapter implementing a common, typed request/response contract. The contract must describe model identifier/version, task and trace identifiers, tenant/project scope, input references, structured-output requirements, tool capability requests, context and output budgets, data-sensitivity classification, timeout, and allowed provider policy.
+
+A provider capability registry must record verified support and limitations for context limits, tokenizer availability, structured outputs, tool calling, streaming, multimodal inputs, cancellation, and usage reporting. Capability claims must be tested or sourced from the provider's documented interface; the router must not assume that GPT, Claude, Gemini, or another model behaves identically.
+
+Every response record must preserve provider/model identity, request ID, timestamps, finish reason, usage/token/cost data when supplied, latency, structured-output validation result, tool-call proposal references, and a safe output digest. Secrets and unnecessary customer content must not be written to operational logs.
+
+## 11.2 Routing, budgeting and failure semantics
+
+The router must select a model using task capability, quality requirement, data classification, provider approval, context limit, latency, availability, and cost. The selected provider must satisfy the tenant's data-processing policy and the task's required capabilities.
+
+Perform budget preflight and record estimated versus actual usage. Enforce per-task, per-project, per-tenant, and company-wide limits. A provider-reported token count is authoritative for that provider's billing where available; local token estimates must be labelled as estimates, not exact counts.
+
+Timeouts, bounded exponential backoff, rate-limit handling, circuit breakers, and provider-health tracking must be explicit. Fallback is allowed only to a provider that satisfies the same or stricter data, capability, and quality constraints. Never silently send customer data to a new provider to recover from an outage.
+
+Model output is untrusted input. It must pass schema validation, policy checks, and independent verification before it can trigger tools, modify repository state, approve work, or be treated as a fact. Tool calls proposed by a model are requests; the permission manager remains authoritative.
 
 # 12. Quality and Refinement Engine
 
@@ -730,6 +905,20 @@ The QA specialist verifies the result independently.
 
 A model's self-reported confidence is not test evidence.
 
+## 12.1 Measurable quality gates
+
+Every deliverable must have an explicit quality contract derived from approved requirements and project risk. The contract must select applicable functional, regression, security, performance, reliability, accessibility, usability, compatibility, and operational checks. Not every check applies to every artifact, but omissions must be justified.
+
+Acceptance criteria must be testable and linked to requirement IDs. Test evidence must identify the source commit, test suite/version, environment, relevant configuration, command or check identity, result, and timestamp. Coverage percentages may be used as one signal, but a universal arbitrary coverage percentage must not replace meaningful branch, boundary, failure-path, and integration tests.
+
+Define finding severities and release rules. Blocker and critical findings must prevent acceptance or release unless an explicitly authorized emergency exception is recorded. High-risk findings require named owner acceptance with impact and mitigation; lower findings must still be tracked to disposition.
+
+## 12.2 Evaluation and approval independence
+
+Each specialist requires domain-specific evaluation scenarios before runtime activation and after material role, model, tool, or policy changes. Evaluation must test correct task performance, boundary compliance, escalation, refusal of unauthorized actions, data isolation, and recovery behaviour—not only happy-path code generation.
+
+The authoring specialist must not independently verify or approve its own high-risk work. QA, security, and release checks must use independent roles or independently enforced automated gates. A model's self-critique is useful input but is not independent verification.
+
 # 13. Governance and Owner Approval
 
 High-risk operations require explicit policy enforcement.
@@ -755,6 +944,16 @@ The platform must maintain:
 - Emergency stop controls.
 
 The system must fail closed when required authorization cannot be verified.
+
+## 13.1 Approval state machine and scoped authority
+
+An approval is a durable, auditable object with an explicit state machine: requested, approved, rejected, expired, revoked, or consumed. It must record approver identity and role, tenant/workspace/project scope, action category, target resource, exact diff/commit or action digest, environment, reason, policy version, request time, expiry, and consumption result.
+
+An approval applies only to the exact action and scope reviewed. A changed commit, target, environment, permission set, or destructive-operation payload requires a new approval. Approvals must not be replayable, transferable between tenants, or inferred from a previous successful action.
+
+Company-owner approval is required for company-wide policy, provider, spending, and production decisions within the owner's authority. A customer administrator may approve actions only within that customer's delegated project and commercial scope; customer approval cannot authorize company-wide changes or another customer's access.
+
+Emergency stop must suspend new execution and prevent privileged actions. Re-enabling execution requires an authorized actor and an auditable reason. If authorization or approval state cannot be verified, the system must fail closed.
 
 # 14. Observability and Operational Reliability
 
@@ -784,6 +983,23 @@ The platform must distinguish:
 
 This is required for effective debugging and recovery.
 
+## 14.1 End-to-end traceability, service objectives and disaster recovery
+
+A stable trace/correlation identifier must follow a user request through task creation, specialist handoffs, queue messages, provider calls, tool executions, tests, artifacts, approvals, and final delivery. Each span/event must identify its tenant/project scope and producing service. Sensitive content and secrets must be redacted or excluded from telemetry.
+
+Operational dashboards and alerts must measure, at minimum:
+
+- Task and workflow success/failure rates by stage and specialist.
+- Queue delay, execution duration, timeout, retry, cancellation, and recovery counts.
+- Provider availability, rate limits, latency, token usage, and cost.
+- Tool failures, permission denials, sandbox violations, and approval delays.
+- Verification failures, escaped defects, release outcomes, and artifact-delivery status.
+- Storage health, backup age, restoration-test outcome, and audit-chain integrity.
+
+Alert thresholds and service-level objectives must be explicitly approved and versioned; they must not be invented as universal values. Define recovery point objectives (RPO) and recovery time objectives (RTO) for each production service tier before customer production use.
+
+Backups must be encrypted, access-controlled, integrity-checked, and periodically restored in a test environment. Recovery procedures must cover registry, memory, task/event state, artifacts, secret references, and audit evidence consistently. Database migrations need tested rollback or forward-repair procedures. Incident response must preserve evidence, identify impacted tenants/projects, contain access, notify the responsible owner under the applicable policy, and document verified restoration.
+
 # 15. Repository and Development Governance
 
 ## 15.1 Repository authority
@@ -794,11 +1010,9 @@ The original repository is:
 
 The `main` branch is the authoritative merged code state.
 
-The assistant provides implementation in chat.
+The default workflow is that the assistant provides complete implementation in chat and the owner manually applies source-code changes in GitHub.
 
-The owner manually applies changes in GitHub.
-
-The assistant must not directly modify, commit, or push repository files.
+There is no implicit repository write authority. The owner may explicitly authorize a one-off documentation update through the connected GitHub integration by naming the exact repository path and requested change. Such authorization is limited to that named documentation operation; it does not authorize source-code changes, unrelated file edits, unattended future writes, commits beyond the requested operation, or a change to the default owner-controlled workflow.
 
 ## 15.2 File delivery contract
 
@@ -862,50 +1076,71 @@ A green Actions run is necessary evidence, but it does not replace architecture 
 
 # 16. Revised Implementation Order
 
-The implementation sequence is dependency-driven.
+The implementation sequence is dependency-driven. The four-layer architecture remains unchanged. Cross-cutting contracts and tenant boundaries must be designed before services are allowed to process real customer workloads.
 
-## Phase 0 — Repository Stabilization
+## Phase 0 — Repository Stabilization and Baseline Integrity
 
 Objectives:
 
-- Remove incorrectly nested or redundant configuration.
-- Establish authoritative README and Foundation architecture.
-- Remove obsolete working instructions.
-- Establish a consolidated GitHub development workflow.
+- Reconcile architecture documents with the actual main-branch implementation.
+- Remove obsolete or contradictory operating instructions.
+- Maintain one authoritative Foundation plan.
+- Keep the GitHub-first, owner-controlled delivery workflow.
+- Resolve the observed L0 token-budget regression without truncating mandatory company policy.
+- Establish repeatable CI and source-state evidence.
 
 Exit criteria:
 
-- One authoritative CI workflow.
-- Accurate repository documentation.
-- No conflicting project operating instructions.
-- Successful CI.
+- Current repository baseline accurately describes implemented and missing capabilities.
+- No contradictory project identity or workflow instructions.
+- L0 context and CLI tests pass with deterministic, justified budget behaviour.
+- Complete CI regression suite passes.
+- The verified commit and Actions run are recorded.
+
+## Phase 0.5 — Cross-Cutting Contracts and Tenant Architecture
+
+Objectives:
+
+- Define canonical company, tenant, workspace, project, user, specialist, and service identities.
+- Define internal-company versus external-customer tenant boundaries.
+- Define role/membership and permission matrices.
+- Version task, execution, handoff, context, model request/response, tool request, approval, artifact, event, and audit contracts.
+- Define data classification, provider/data-processing policy, retention, deletion, and provenance rules.
+- Threat-model tenant isolation, prompt injection, tool execution, and shared-worker boundaries.
+
+Exit criteria:
+
+- Versioned schemas and compatibility policy exist.
+- Contract tests cover valid, invalid, missing, stale, and cross-scope identifiers.
+- Tenant isolation threat model and negative-test plan are approved.
+- No service is treated as customer-ready before enforcement tests exist.
 
 ## Phase 1 — F01 Registry Hardening
 
 Objectives:
 
-- Validate company, project, and specialist contracts.
-- Verify transactional bootstrap.
-- Harden migration and configuration behaviour.
-- Establish clear registry ownership.
-- Prepare memory integration contracts.
+- Validate company, project, and all eight specialist contracts.
+- Define the canonical tenant/workspace extension without duplicating identity sources.
+- Verify transactional bootstrap, schema migrations, and lifecycle rules.
+- Harden configuration ownership and secret-reference handling.
+- Establish registry-to-memory identity contracts.
 
 Exit criteria:
 
-- Registry invariants tested.
-- All eight specialist records validated.
-- No partial bootstrap state.
-- Audit chain integrity verified.
+- Registry invariants and migration tests pass.
+- All eight canonical specialist records and manifests are reconciled.
+- Tenant/workspace parent-child constraints are specified and tested when implemented.
+- No partial bootstrap state is possible.
+- Audit chain integrity is verified.
 
 ## Phase 2 — F02 Repository Intelligence Hardening
 
 Objectives:
 
 - Stabilize scanner and snapshot contracts.
-- Verify dependency mapping.
-- Verify Git revision handling.
-- Verify impact analysis.
-- Verify incremental cache invalidation.
+- Verify dependency mapping, Git revision handling, and impact analysis.
+- Verify incremental cache invalidation and strict content checks.
+- Enforce tenant/project-scoped repository access in the future execution boundary.
 - Establish repeatable full-scan comparison.
 
 Exit criteria:
@@ -913,6 +1148,7 @@ Exit criteria:
 - Deterministic scan output.
 - Correct dependency and impact results.
 - Strict cache verification tests.
+- Cross-scope repository access is rejected.
 - Regression suite passes.
 
 ## Phase 3 — F03 Persistent Memory
@@ -920,146 +1156,176 @@ Exit criteria:
 Objectives:
 
 - Remove obsolete seed instructions.
-- Define canonical ownership with Registry.
-- Define versioned memory schema.
-- Preserve old records.
-- Provide shared-storage architecture.
-- Implement history and checkpoint recovery.
+- Define canonical Registry ownership and tenant-scoped memory references.
+- Define versioned memory and event schemas.
+- Preserve existing SQLite records.
+- Establish conflict resolution, concurrent-write, and retention semantics.
+- Implement history, checkpoint recovery, and tested shared-storage migration.
 
 Exit criteria:
 
-- Existing information preserved.
-- Restart and recovery tested.
-- Concurrent writes tested.
-- Migration and restoration verified.
+- Existing information is preserved.
+- Restart, backup, restore, and recovery are tested.
+- Concurrent writes and duplicate events are handled safely.
+- Tenant isolation and deletion/retention tests pass.
+- Migration and rollback/forward-repair are verified.
 
-## Phase 4 — F04 Context Compiler
+## Phase 4 — F04 Context Compiler and GPT Handoff
 
 Objectives:
 
-- Build context retrieval.
-- Implement L0–L4 context construction.
-- Introduce token budgeting.
-- Add source references.
-- Provide task-specific handoff generation.
+- Complete tenant-aware, provenance-aware retrieval.
+- Stabilize current L0, L1, and L2 contracts.
+- Implement L3 task/source context and L4 audit/verification context.
+- Add untrusted-content and prompt-injection boundaries.
+- Integrate provider-aware token budgets and source-digest handoff packets.
+- Generate task-specific handoff packages for a new authorized AI session.
 
 Exit criteria:
 
-- Correct specialist context selection.
-- No unnecessary cross-project data exposure.
-- Deterministic budget handling.
+- Correct specialist and tenant-scoped context selection.
+- No cross-project or cross-tenant data exposure.
+- Stale/conflicting/untrusted content is identified.
+- L0-L4 packets have schema, digest, source references, and deterministic omission reports.
 - Context reconstruction tests pass.
 
-## Phase 5 — F05 Incremental Audit
+## Phase 5 — F05 Incremental Audit and Evidence Ledger
 
 Objectives:
 
-- Build a structured audit evidence ledger.
-- Connect Git snapshots and dependency information.
-- Reuse valid evidence.
+- Build structured audit evidence linked to task and execution attempts.
+- Connect Git snapshots, dependency information, context digests, and test results.
+- Reuse only valid evidence.
 - Invalidate stale evidence.
-- Support resumable audits.
+- Support resumable and reproducible audits.
 
 Exit criteria:
 
 - Commit-linked audit history.
 - Reproducible verification evidence.
-- Safe cache reuse.
-- Correct stale-result invalidation.
+- Safe cache reuse and stale-result invalidation.
+- Machine observations, model assessments, and human approvals remain distinguishable.
 
-## Phase 6 — Governance and Security
+## Phase 6 — Governance, Tenant Authorization and Secure Tool Execution
 
 Objectives:
 
-- Define permission policies.
-- Establish approval workflows.
-- Enforce high-risk operation controls.
-- Verify agent/tool boundaries.
-- Protect secrets and sensitive data.
+- Define and enforce tenant-aware permission policies.
+- Establish scoped approval state machines.
+- Introduce tool allowlists and risk classification.
+- Implement isolated execution sandboxes and filesystem/network boundaries.
+- Protect secrets through scoped injection and redaction.
+- Set time, memory, CPU, storage, and cost limits.
+- Add emergency stop and incident controls.
 
 Exit criteria:
 
-- Unauthorized operations rejected.
-- Approval history preserved.
-- Security policy tests pass.
+- Unauthorized and cross-tenant operations are rejected.
+- Destructive and privileged actions require valid, scoped approvals.
+- Sandbox escape and denied-capability tests pass.
+- Secrets do not appear in prompts, artifacts, telemetry, or test output.
+- Approval and revocation history is auditable.
 
 ## Phase 7 — Quality and Refinement
 
 Objectives:
 
-- Introduce independent code review.
-- Build measurable quality rules.
-- Add refinement and retesting.
-- Record findings and risk severity.
+- Introduce independent structural, functional, security, and operational review.
+- Define project-risk-specific, measurable acceptance contracts.
+- Add specialist evaluation benchmarks.
+- Add refinement, regression re-testing, and severity handling.
+- Bind every result to source and environment evidence.
 
 Exit criteria:
 
-- Findings linked to source versions.
-- Correct regression behaviour.
-- Independent verification.
-- No unsupported approval claims.
+- Findings link to source versions and reproducible evidence.
+- Required domain gates pass.
+- Blocker/critical findings prevent acceptance or release.
+- Independent QA/security checks cannot be self-approved.
+- No unsupported verification or quality claims are emitted.
 
-## Phase 8 — Agent Runtime
+## Phase 8 — Model Gateway, Workflow Engine and Agent Runtime
 
 Objectives:
 
-- Load specialist definitions.
-- Enforce permissions.
-- Execute bounded tasks.
-- Integrate model gateway.
-- Implement retries and recovery.
-- Maintain execution history.
+- Implement provider-neutral request/response contracts and verified capability profiles.
+- Integrate approved model providers with tenant/data policies.
+- Implement task queue, scheduler, worker lifecycle, specialist handoffs, and dependency-safe workflow execution.
+- Enforce bounded tools, workspace isolation, idempotency, concurrency control, retry, cancellation, checkpointing, and recovery.
+- Record provider usage, quality evidence, and end-to-end traces.
 
 Exit criteria:
 
-- Valid agent execution lifecycle.
-- Tool boundaries enforced.
-- Recoverable task state.
-- Provider failure handling tested.
+- Valid task and specialist execution lifecycle.
+- Handoffs are schema-validated and acknowledged.
+- Tool and tenant boundaries are enforced at runtime.
+- Duplicate delivery and worker recovery are safe.
+- Provider failure/fallback behaviour is policy-compliant and tested.
+- Cost and operational evidence is complete.
 
 ## Phase 9 — Business Analyst / PM Pilot
 
-Activate one specialist first.
+Activate one specialist first only after the shared contracts, memory, context, governance, quality, and runtime gates are operational.
 
-Validate requirements, dependency-safe planning, backlog management, handoffs, and permanent project records.
+Validate requirement analysis, decision capture, dependency-safe planning, backlog management, specialist assignment, handoffs, owner escalation, and permanent project records.
 
-The pilot must use the actual shared Company OS services.
+The pilot must use the actual shared Company OS services and must be tested first on an internal project. Its manifest being present is not pilot acceptance.
+
+Exit criteria:
+
+- PM can create and coordinate real bounded tasks.
+- Decisions and handoffs persist and reconstruct correctly.
+- It cannot exceed owner or tenant permissions.
+- Pilot deliverables pass independent verification.
 
 ## Phase 10 — Remaining Seven Specialists
 
 Activate the remaining specialists one at a time.
 
-Each must pass independent domain evaluation before operational activation.
+Each specialist must pass independent domain evaluations, tool-boundary tests, handoff tests, quality gates, and recovery tests before operational activation.
 
-## Phase 11 — Company Platform
+## Phase 11 — Company Platform and Commercial Operations
 
-Develop API, management interface, integrations, deployment, monitoring, and operational infrastructure.
+Develop authenticated APIs, owner/customer interface, onboarding, tenant/workspace lifecycle, project setup, approvals, delivery tracking, artifact handover, usage metering, plans/quotas, billing, support, monitoring, deployment, and incident operations.
 
-Production deployment must follow the governance and security gates.
+The platform must use the canonical Company OS services and preserve tenant isolation end to end.
+
+Production deployment requires approved service objectives, tested backup/restore, disaster recovery, security gates, and customer-facing operational procedures.
 
 # 17. Definition of Done
 
-A Foundation component is complete only when the relevant criteria are verified.
+A Foundation component is complete only when its relevant acceptance criteria are implemented, automated where possible, and supported by recorded evidence.
 
 | Area | Acceptance criterion |
 |---|---|
-| Company identity | Consistent across services |
-| Project isolation | No accidental cross-project data access |
-| Agent identity | Eight independent registered specialists |
-| Memory | Persistent and recoverable |
-| Decision history | Source and timestamp retained |
-| Context | Correct specialist-specific retrieval |
-| Token management | Enforced context budgets |
-| Repository intelligence | Reproducible snapshots |
-| Incremental analysis | Stale cache rejected |
-| Audit | Findings linked to source state |
-| Execution | Recoverable task lifecycle |
-| Governance | Approval and permission enforcement |
-| Quality | Independent verification |
-| Security | Negative tests and policy enforcement |
-| Observability | Traceable execution events |
+| Company identity | One canonical identity across services |
+| Tenant identity | Each customer/internal tenant has a canonical scope and lifecycle |
+| Tenant isolation | Negative tests reject cross-tenant reads, writes, retrieval, tool use, artifacts, and logs |
+| Project isolation | No accidental cross-project data or credential access |
+| Agent identity | Exactly eight canonical specialist identities; manifest validation is not runtime activation |
+| Agent readiness | Runtime, permissions, tools, contracts, and domain evaluations pass before Active |
+| Memory | Persistent, versioned, tenant-scoped, and recoverable |
+| Decision history | Source, author/actor, approval state, version, and timestamp retained |
+| Context | Correct tenant/project/specialist retrieval with provenance |
+| Context trust | Stale, conflicting, untrusted, and prompt-injection content cannot override policy |
+| Token management | Budgets enforced with omissions reported and provider estimates labelled correctly |
+| Repository intelligence | Reproducible source snapshots and dependency evidence |
+| Incremental analysis | Stale or tampered cache evidence rejected |
+| Audit | Findings linked to commit, task, attempt, context, toolchain, and test evidence |
+| Task execution | Valid state transitions, idempotency, bounded retries, and recovery |
+| Handoffs | Versioned payload, ownership acknowledgement, evidence, and permission scope |
+| Concurrency | Conflicting writes are isolated or rejected; stale workers cannot publish |
+| Provider gateway | Capability-aware routing, data-policy enforcement, usage metering, and tested failures |
+| Tool security | Sandbox, allowlists, secret controls, resource limits, and negative tests |
+| Governance | Scoped, expiring, revocable approvals and fail-closed authorization |
+| Quality | Measurable project-risk-specific gates and independent verification |
+| Observability | End-to-end traces, operational metrics, and alerts with sensitive-data redaction |
+| Disaster recovery | Encrypted backups, restore drills, defined RPO/RTO, and tested recovery |
+| Customer delivery | Tenant onboarding, approval, delivery, metering, billing, support, and offboarding are verified before commercial launch |
 
 The complete Foundation must support a new authorized development session without depending on the entire previous ChatGPT conversation.
+
+A component must not be marked complete solely because a file, class, manifest, database table, API route, or architecture document exists. Acceptance requires behaviour, tests, and relevant operational/security evidence.
 
 # 18. Architecture Decisions and Constraints
 
@@ -1075,46 +1341,76 @@ The following are the initial engineering decisions:
 8. Specialist logic remains independently owned.
 9. Security and governance precede unrestricted agent execution.
 10. Every completed feature requires implementation and test evidence.
+11. Internal and customer workloads may share approved workforce infrastructure, but tenant data and execution authority remain isolated.
+12. Tenant scope is mandatory on every customer-owned task, memory record, context packet, artifact, tool session, approval, usage record, and audit event.
+13. Provider fallback may not weaken data-processing, capability, or security requirements.
+14. Model output and retrieved repository/customer content are untrusted until validated; they cannot grant permissions or override policy.
+15. Delivery is designed for duplicate-safe execution through idempotency and reconciliation; exactly-once behaviour must not be assumed.
+16. Customer billing, support, onboarding, and offboarding use canonical tenant/project records rather than a parallel identity store.
+17. No production customer workload is permitted before tenant isolation, sandbox, approval, restore, and incident-response gates pass.
 
 Future technology changes require explicit architectural justification and migration planning.
 
 # 19. Current Risks and Open Engineering Work
 
-The following must not be silently ignored:
+The following status reflects the main-branch review recorded in Section 5. It must be refreshed after material implementation changes. Planned capabilities must not be reported as available services.
 
-- Two independent SQLite databases exist.
-- Memory seed instructions contain an outdated Git workflow.
-- Shared memory is not yet implemented.
-- Agent specification directories are missing.
-- The basic agent loader is not an autonomous runtime.
-- The Context Compiler is not implemented.
-- The complete audit ledger is not implemented.
-- Governance and execution authorization are incomplete.
-- Provider integrations are not implemented.
-- The BA / PM source material is not yet an integrated active specialist.
+## 19.1 Implemented foundations, with limitations
 
-Each risk must have an owner, proposed resolution, dependencies, and acceptance criteria when it becomes an active task.
+- Company, project, and eight-specialist registry components exist, but a complete multi-tenant customer registry and membership/authorization system do not.
+- All eight specialist manifests exist and the loader validates their declarative contracts, but no autonomous agent runtime or model invocation is provided by the loader.
+- Local SQLite memory supports project/specialist records, tasks, events, and checkpoints, but memory is not cloud-shared across sessions or workers.
+- The integrated Foundation service coordinates registry and memory operations and backups, but two SQLite databases remain separate and there is no distributed application transaction.
+- L0, L1, and L2 context compilers and CLIs exist. L3 and L4 are not complete.
+- Repository scanning, Git history, dependency mapping, impact analysis, and incremental scanning components exist; metadata cache reuse is not tamper-proof verification.
+- Current CI run 45603086170 is red: 171 passed and 10 failed due to L0 required-context budget exhaustion (5,087 estimated versus 4,800 available).
+
+## 19.2 Capabilities not yet established
+
+- Customer tenant/workspace lifecycle, memberships, roles, cross-tenant authorization, and customer data export/deletion.
+- Tenant-scoped shared memory, PostgreSQL deployment, multi-worker concurrency, and verified disaster recovery.
+- Complete L0-L4 context-to-task handoff pipeline with trust classification and prompt-injection protection.
+- Versioned task, handoff, queue, worker-lease, idempotency, cancellation, and concurrency contracts.
+- Model Gateway, provider adapters, model capability registry, cost metering, and policy-safe fallback.
+- Secure tool execution sandbox, filesystem/network restrictions, resource limits, and scoped secret injection.
+- Autonomous workflow orchestration and bounded specialist execution.
+- Independent quality/security runtime with measurable per-project acceptance gates.
+- End-to-end observability, service objectives, backup/restore drills, and incident response.
+- Customer onboarding, dashboards, delivery acceptance, plans/quotas, billing, support, and offboarding.
+
+## 19.3 Required risk ownership
+
+Every open risk converted into an active task must identify:
+
+- Responsible specialist and accountable owner.
+- Affected tenant/project scope.
+- Dependency and versioned contract.
+- Threat/failure scenario and impact.
+- Required implementation and negative tests.
+- Acceptance evidence and rollback/recovery plan.
+
+A risk cannot be closed by documentation alone when enforcement or runtime behaviour is required.
 
 # 20. Immediate Engineering Priority
 
-The immediate priority is not creating more modules.
-
-The priority is to stabilize the existing foundation and establish reliable interfaces between its components.
+The immediate priority is to close the reliability and contract gaps in the existing Foundation, not to create disconnected modules.
 
 The order is:
 
-1. Repository documentation and workflow stabilization.
-2. Registry and repository intelligence hardening.
-3. Persistent memory correction and integration.
-4. Context Compiler.
-5. Audit evidence ledger.
-6. Governance and security.
-7. Quality and refinement.
-8. Agent runtime.
-9. BA / PM pilot.
-10. Remaining specialists.
+1. **Resolve the current CI blocker:** fix L0 budget planning so all required identity and operating policies fit safely; do not hide the failure by silently truncating required content or merely weakening tests.
+2. **Restore a verified baseline:** rerun the complete regression suite and record the passing commit, test report, and Actions evidence; keep the baseline red until this is proven.
+3. **Freeze cross-cutting contracts:** define versioned tenant/workspace identity, authorization scope, task/handoff, model request/response, tool request, approval, artifact, event, and audit schemas.
+4. **Harden Registry and Repository Intelligence:** preserve the canonical company/project/eight-agent catalog; add tenant/workspace architecture without duplicate identity stores; strengthen snapshot and strict-cache evidence.
+5. **Integrate persistent memory:** define tenant-scoped ownership, versioned decisions/events, concurrency, retention, idempotency, and verified migration/restore while preserving existing SQLite data.
+6. **Complete Context Intelligence:** stabilize existing L0-L2, implement L3/L4, add provenance/trust classification, safe retrieval, provider-aware budgets, and reproducible GPT handoff packets.
+7. **Complete audit evidence:** bind test/security/quality results to source commits, task attempts, context digests, toolchains, policies, and approvals.
+8. **Enforce governance and safe execution:** tenant authorization, permission manager, approval lifecycle, tool allowlists, sandbox, scoped secrets, resource limits, and emergency stop.
+9. **Implement measurable Quality and independent verification:** domain-specific evaluation, security gates, reproducible evidence, and non-self-approval rules.
+10. **Build Model Gateway and workflow runtime:** provider capability adapters, policy-compliant routing, task queue, handoffs, retries, leases, concurrency, cancellation, and recovery.
+11. **Pilot Business Analyst / PM internally:** prove the real end-to-end Company OS workflow before activating the remaining seven specialists.
+12. **Activate the remaining specialists and deliver the Company Platform:** customer onboarding, isolated workspaces, approvals, usage/billing, delivery, support, retention, and offboarding.
 
-No subsequent phase should be declared complete merely because its planned files exist.
+No later phase is complete merely because planned files exist. Each phase must pass the acceptance criteria in Sections 16 and 17. The actual repository and CI evidence remain authoritative over estimates, diagrams, and documentation status.
 
 ---
 
@@ -1125,3 +1421,12 @@ Build an integrated, recoverable, testable AI engineering organization.
 Prefer substantial improvements to existing components over unnecessary module creation.
 
 Maintain independent specialist ownership, preserve project knowledge, verify all implementation, and never confuse documentation, registration, or generated AI output with operational capability.
+
+# 21. Revision History
+
+| Baseline | Date | Change |
+|---|---|---|
+| 0.2 | 2026-11-09 | Previous Foundation Architecture and Engineering Plan. |
+| 0.3 | 2026-11-25 | Consolidated the gaps documented in plan update into this canonical plan; added tenant/customer boundaries, execution and handoff contracts, provider gateway semantics, context provenance and prompt-injection controls, secure tool execution, measurable quality gates, approval lifecycle, observability and disaster recovery; reconciled repository status against main commit 18a96acee5ce35b2d6404e3af1a4caf9c4c2063b and recorded the observed CI blocker. |
+
+The file plan update is retained as historical review input. This Foundation plan is the canonical architecture and engineering baseline; future approved changes must be integrated here rather than leaving competing master plans.
