@@ -4,6 +4,11 @@ Coordinates the canonical company registry and persistent project memory.
 The two SQLite databases remain separate; bootstrap is retry-safe rather than
 pretending to provide a distributed transaction.
 
+Backups use a coordinated SQLite write barrier: both databases are locked
+against writers before validation and remain locked until both copies finish.
+This creates a stable cross-database backup window, not a distributed
+application transaction.
+
 This module does not execute agents or call AI providers.
 """
 from __future__ import annotations
@@ -31,6 +36,17 @@ PROJECT_REPOSITORY = (
 
 BACKUP_FORMAT = "ai-dev-company-state-backup"
 BACKUP_VERSION = 1
+BACKUP_SNAPSHOT_CONSISTENCY = "coordinated-sqlite-write-barrier"
+BACKUP_LOCK_STRATEGY = "sqlite-begin-immediate"
+BACKUP_SNAPSHOT_SEMANTICS = (
+    "Both databases were write-locked before validation and remained "
+    "write-locked until both database copies completed. This prevents "
+    "writes during the copy window; it does not create a distributed "
+    "transaction for application workflows that previously wrote to "
+    "the two databases separately."
+)
+LEGACY_BACKUP_CONSISTENCY = "legacy-independent-database-snapshots"
+
 FOUNDATION_SCHEMA_VERSION = 1
 GENESIS_HASH = "0" * 64
 
@@ -656,7 +672,64 @@ class FoundationService:
         }
 
     @staticmethod
+    def _acquire_backup_write_barrier(
+        database_paths: tuple[Path, ...],
+    ) -> list[sqlite3.Connection]:
+        """Lock every source database against writers in deterministic order.
+
+        BEGIN IMMEDIATE takes SQLite's writer reservation without changing
+        database contents. The connections remain open until the caller has
+        completed both database copies.
+        """
+        connections: list[sqlite3.Connection] = []
+        ordered_paths = sorted(
+            {
+                Path(path).expanduser().resolve()
+                for path in database_paths
+            },
+            key=lambda item: item.as_posix(),
+        )
+
+        try:
+            for path in ordered_paths:
+                connection = sqlite3.connect(
+                    str(path),
+                    timeout=15,
+                    isolation_level=None,
+                )
+                connections.append(connection)
+                connection.execute("PRAGMA busy_timeout=15000")
+                connection.execute("BEGIN IMMEDIATE")
+
+            return connections
+
+        except sqlite3.Error as exc:
+            FoundationService._release_backup_write_barrier(connections)
+            raise FoundationError(
+                "Could not establish the coordinated backup write barrier. "
+                "A database may be busy or unavailable; no backup was published."
+            ) from exc
+
+    @staticmethod
+    def _release_backup_write_barrier(
+        connections: list[sqlite3.Connection],
+    ) -> None:
+        """Release acquired SQLite writer reservations in reverse order."""
+        for connection in reversed(connections):
+            try:
+                if connection.in_transaction:
+                    connection.rollback()
+            except sqlite3.Error:
+                pass
+            finally:
+                try:
+                    connection.close()
+                except sqlite3.Error:
+                    pass
+
+    @staticmethod
     def _backup_sqlite(source: Path, destination: Path) -> None:
+        """Copy one SQLite database using SQLite's online backup API."""
         source_db = sqlite3.connect(str(source), timeout=15)
         target_db = sqlite3.connect(str(destination), timeout=15)
 
@@ -669,6 +742,15 @@ class FoundationService:
             if integrity != "ok":
                 raise FoundationIntegrityError(
                     f"Backup integrity check failed for {source.name}: {integrity}"
+                )
+
+            foreign_key_errors = target_db.execute(
+                "PRAGMA foreign_key_check"
+            ).fetchall()
+            if foreign_key_errors:
+                raise FoundationIntegrityError(
+                    f"Backup foreign-key check failed for {source.name}: "
+                    f"{len(foreign_key_errors)} violation(s)"
                 )
         finally:
             target_db.close()
@@ -683,8 +765,146 @@ class FoundationService:
             )
 
     @classmethod
+    def _verify_backup_identity_alignment(
+        cls,
+        registry_path: Path,
+        memory_path: Path,
+        manifest: Mapping[str, Any],
+    ) -> None:
+        """Verify that both copied databases describe the same foundation."""
+        if manifest.get("company_id") != COMPANY_ID:
+            raise FoundationIntegrityError(
+                "Backup manifest does not identify the canonical company."
+            )
+
+        if manifest.get("project_id") != PROJECT_ID:
+            raise FoundationIntegrityError(
+                "Backup manifest does not identify the canonical project."
+            )
+
+        try:
+            with sqlite3.connect(str(registry_path), timeout=15) as registry:
+                registry.row_factory = sqlite3.Row
+
+                company = registry.execute(
+                    """
+                    SELECT company_id,status
+                    FROM companies
+                    WHERE company_id=?
+                    """,
+                    (COMPANY_ID,),
+                ).fetchone()
+
+                project = registry.execute(
+                    """
+                    SELECT project_id,company_id,repository_url,
+                           default_branch,status
+                    FROM projects
+                    WHERE project_id=?
+                    """,
+                    (PROJECT_ID,),
+                ).fetchone()
+
+                agent_rows = registry.execute(
+                    """
+                    SELECT agent_id
+                    FROM agents
+                    WHERE company_id=?
+                    """,
+                    (COMPANY_ID,),
+                ).fetchall()
+
+            if company is None or company["status"] != "active":
+                raise FoundationIntegrityError(
+                    "Backup registry does not contain the active canonical company."
+                )
+
+            if (
+                project is None
+                or project["company_id"] != COMPANY_ID
+                or project["repository_url"] != PROJECT_REPOSITORY
+                or project["default_branch"] != "main"
+                or project["status"] != "active"
+            ):
+                raise FoundationIntegrityError(
+                    "Backup registry project identity does not match the "
+                    "canonical AI-Dev-Company project."
+                )
+
+            actual_agent_ids = {
+                row["agent_id"] for row in agent_rows
+            }
+            expected_agent_ids = {
+                item["agent_id"] for item in DEFAULT_AGENTS
+            }
+
+            if actual_agent_ids != expected_agent_ids:
+                raise FoundationIntegrityError(
+                    "Backup registry does not contain exactly the canonical "
+                    "eight specialist identities."
+                )
+
+            with sqlite3.connect(str(memory_path), timeout=15) as memory:
+                migration = memory.execute(
+                    """
+                    SELECT MAX(version)
+                    FROM foundation_migrations
+                    """
+                ).fetchone()[0] or 0
+
+                binding_rows = memory.execute(
+                    """
+                    SELECT binding_key,binding_value
+                    FROM foundation_bindings
+                    """
+                ).fetchall()
+
+            bindings = dict(binding_rows)
+
+            if migration != FOUNDATION_SCHEMA_VERSION:
+                raise FoundationIntegrityError(
+                    "Backup memory database has an unsupported foundation migration."
+                )
+
+            if bindings.get("company_id") != COMPANY_ID:
+                raise FoundationIntegrityError(
+                    "Backup memory company binding is inconsistent."
+                )
+
+            if bindings.get("project_id") != PROJECT_ID:
+                raise FoundationIntegrityError(
+                    "Backup memory project binding is inconsistent."
+                )
+
+            expected_scope_map = {
+                item["agent_id"]: item["slug"]
+                for item in DEFAULT_AGENTS
+            }
+            try:
+                stored_scope_map = json.loads(
+                    bindings.get("agent_scope_map", "{}")
+                )
+            except (TypeError, json.JSONDecodeError) as exc:
+                raise FoundationIntegrityError(
+                    "Backup memory specialist scope binding is invalid."
+                ) from exc
+
+            if stored_scope_map != expected_scope_map:
+                raise FoundationIntegrityError(
+                    "Backup memory specialist scopes do not match the "
+                    "canonical registry catalog."
+                )
+
+        except FoundationIntegrityError:
+            raise
+        except (sqlite3.Error, KeyError, TypeError, ValueError) as exc:
+            raise FoundationIntegrityError(
+                f"Backup cross-database identity verification failed: {exc}"
+            ) from exc
+
+    @classmethod
     def verify_backup(cls, backup_path: str | Path) -> dict[str, Any]:
-        """Verify backup manifest, file hashes, SQLite integrity and audit chain."""
+        """Verify manifest, hashes, both SQLite databases and their identities."""
         directory = Path(backup_path).expanduser().resolve()
         manifest_path = directory / "manifest.json"
 
@@ -698,6 +918,9 @@ class FoundationService:
                 f"Backup manifest cannot be read: {exc}"
             ) from exc
 
+        if not isinstance(manifest, dict):
+            raise FoundationIntegrityError("Backup manifest must be a JSON object.")
+
         if (
             manifest.get("format") != BACKUP_FORMAT
             or manifest.get("version") != BACKUP_VERSION
@@ -706,30 +929,70 @@ class FoundationService:
                 "Unsupported backup format or version."
             )
 
+        created_at = manifest.get("created_at")
+        if not isinstance(created_at, str) or not created_at.strip():
+            raise FoundationIntegrityError(
+                "Backup manifest creation timestamp is missing."
+            )
+
         expected_names = {
             "company_registry.sqlite3",
             "project_memory.sqlite3",
         }
-        database_metadata = manifest.get("databases", {})
+        database_metadata = manifest.get("databases")
 
-        if set(database_metadata) != expected_names:
+        if (
+            not isinstance(database_metadata, dict)
+            or set(database_metadata) != expected_names
+        ):
             raise FoundationIntegrityError(
                 "Backup must contain exactly the registry and memory databases."
             )
+
+        database_hashes: dict[str, str] = {}
 
         for name in sorted(expected_names):
             # File names are fixed to prevent path traversal from a manifest.
             path = directory / name
             metadata = database_metadata[name]
 
+            if not isinstance(metadata, dict):
+                raise FoundationIntegrityError(
+                    f"Backup metadata is invalid for {name}."
+                )
+
+            expected_size = metadata.get("size_bytes")
+            expected_hash = metadata.get("sha256")
+
+            if (
+                not isinstance(expected_size, int)
+                or isinstance(expected_size, bool)
+                or expected_size < 0
+            ):
+                raise FoundationIntegrityError(
+                    f"Backup size metadata is invalid: {name}"
+                )
+
+            if (
+                not isinstance(expected_hash, str)
+                or len(expected_hash) != 64
+                or any(character not in "0123456789abcdef" for character in expected_hash)
+            ):
+                raise FoundationIntegrityError(
+                    f"Backup checksum metadata is invalid: {name}"
+                )
+
             if not path.is_file():
                 raise FoundationIntegrityError(f"Backup file is missing: {name}")
 
-            if path.stat().st_size != metadata.get("size_bytes"):
+            if path.stat().st_size != expected_size:
                 raise FoundationIntegrityError(f"Backup size mismatch: {name}")
 
-            if _sha256(path) != metadata.get("sha256"):
+            actual_hash = _sha256(path)
+            if actual_hash != expected_hash:
                 raise FoundationIntegrityError(f"Backup checksum mismatch: {name}")
+
+            database_hashes[name] = actual_hash
 
             valid, detail = _sqlite_integrity(path)
             if not valid:
@@ -737,57 +1000,91 @@ class FoundationService:
                     f"Backup database is invalid ({name}): {detail}"
                 )
 
+        snapshot = manifest.get("snapshot")
+        if snapshot is None:
+            # Version-1 backups created before the coordinated barrier remain
+            # readable, but are explicitly labelled as independent snapshots.
+            snapshot_consistency = LEGACY_BACKUP_CONSISTENCY
+            snapshot_id = None
+        else:
+            if not isinstance(snapshot, dict):
+                raise FoundationIntegrityError(
+                    "Backup snapshot metadata must be a JSON object."
+                )
+
+            if snapshot.get("consistency") != BACKUP_SNAPSHOT_CONSISTENCY:
+                raise FoundationIntegrityError(
+                    "Backup snapshot consistency declaration is unsupported."
+                )
+
+            if snapshot.get("lock_strategy") != BACKUP_LOCK_STRATEGY:
+                raise FoundationIntegrityError(
+                    "Backup snapshot lock strategy is unsupported."
+                )
+
+            if snapshot.get("locked_databases") != sorted(expected_names):
+                raise FoundationIntegrityError(
+                    "Backup snapshot does not identify both coordinated database locks."
+                )
+
+            snapshot_id = snapshot.get("snapshot_id")
+            if (
+                not isinstance(snapshot_id, str)
+                or len(snapshot_id) != 32
+                or any(
+                    character not in "0123456789abcdef"
+                    for character in snapshot_id
+                )
+            ):
+                raise FoundationIntegrityError(
+                    "Backup snapshot identifier is invalid."
+                )
+
+            barrier_established_at = snapshot.get("barrier_established_at")
+            if (
+                not isinstance(barrier_established_at, str)
+                or not barrier_established_at.strip()
+            ):
+                raise FoundationIntegrityError(
+                    "Backup snapshot barrier timestamp is missing."
+                )
+
+            if snapshot.get("semantics") != BACKUP_SNAPSHOT_SEMANTICS:
+                raise FoundationIntegrityError(
+                    "Backup snapshot semantics do not match the supported contract."
+                )
+
+            snapshot_consistency = BACKUP_SNAPSHOT_CONSISTENCY
+
         registry_path = directory / "company_registry.sqlite3"
         memory_path = directory / "project_memory.sqlite3"
 
         cls._verify_backup_registry_chain(registry_path)
-
-        with sqlite3.connect(str(memory_path), timeout=15) as db:
-            migration = db.execute(
-                "SELECT MAX(version) FROM foundation_migrations"
-            ).fetchone()[0] or 0
-
-            binding_rows = db.execute(
-                """
-                SELECT binding_key,binding_value
-                FROM foundation_bindings
-                """
-            ).fetchall()
-            bindings = dict(binding_rows)
-
-        if migration != FOUNDATION_SCHEMA_VERSION:
-            raise FoundationIntegrityError(
-                "Backup memory database has an unsupported foundation migration."
-            )
-
-        if bindings.get("company_id") != manifest.get("company_id"):
-            raise FoundationIntegrityError(
-                "Backup company identity does not match its manifest."
-            )
-
-        if bindings.get("project_id") != manifest.get("project_id"):
-            raise FoundationIntegrityError(
-                "Backup project identity does not match its manifest."
-            )
+        cls._verify_backup_identity_alignment(
+            registry_path,
+            memory_path,
+            manifest,
+        )
 
         return {
             "verified": True,
             "backup_path": str(directory),
-            "company_id": manifest["company_id"],
-            "project_id": manifest["project_id"],
+            "company_id": COMPANY_ID,
+            "project_id": PROJECT_ID,
             "databases": sorted(expected_names),
-            "created_at": manifest["created_at"],
+            "database_hashes": database_hashes,
+            "created_at": created_at,
+            "snapshot_id": snapshot_id,
+            "snapshot_consistency": snapshot_consistency,
         }
 
     def create_backup(self, destination: str | Path) -> dict[str, Any]:
-        """Create and verify a state-only backup without copying source code."""
-        validation = self.validate()
-        if not validation["valid"]:
-            raise FoundationIntegrityError(
-                "Backup refused because foundation validation failed: "
-                + "; ".join(validation["issues"])
-            )
+        """Create a coordinated, verified runtime-state backup.
 
+        Both live databases are write-locked before validation. The locks stay
+        held until both SQLite online-backup copies have completed. The source
+        databases are never modified by the barrier itself.
+        """
         target = Path(destination).expanduser().resolve()
 
         if target.exists():
@@ -804,12 +1101,47 @@ class FoundationService:
         staging = target.parent / f".{target.name}.tmp-{uuid.uuid4().hex}"
         staging.mkdir()
 
+        barrier_connections: list[sqlite3.Connection] = []
+
         try:
+            barrier_connections = self._acquire_backup_write_barrier(
+                (
+                    self.registry_path,
+                    self.memory.db_path,
+                )
+            )
+            barrier_established_at = _utc_now()
+
+            # Validation runs only after both databases are write-locked.
+            validation = self.validate()
+            if not validation["valid"]:
+                raise FoundationIntegrityError(
+                    "Backup refused because foundation validation failed: "
+                    + "; ".join(validation["issues"])
+                )
+
             registry_copy = staging / "company_registry.sqlite3"
             memory_copy = staging / "project_memory.sqlite3"
 
             self._backup_sqlite(self.registry_path, registry_copy)
             self._backup_sqlite(self.memory.db_path, memory_copy)
+
+            snapshot = {
+                "snapshot_id": uuid.uuid4().hex,
+                "consistency": BACKUP_SNAPSHOT_CONSISTENCY,
+                "lock_strategy": BACKUP_LOCK_STRATEGY,
+                "locked_databases": [
+                    "company_registry.sqlite3",
+                    "project_memory.sqlite3",
+                ],
+                "barrier_established_at": barrier_established_at,
+                "semantics": BACKUP_SNAPSHOT_SEMANTICS,
+            }
+
+            # Both database copies now represent the same write-quiescent
+            # window. Release source locks before hashing and verifying copies.
+            self._release_backup_write_barrier(barrier_connections)
+            barrier_connections = []
 
             manifest = {
                 "format": BACKUP_FORMAT,
@@ -821,6 +1153,7 @@ class FoundationService:
                 "source_code": (
                     "Not included. GitHub remains the source of truth for code."
                 ),
+                "snapshot": snapshot,
                 "databases": {
                     "company_registry.sqlite3": {
                         "size_bytes": registry_copy.stat().st_size,
@@ -844,12 +1177,21 @@ class FoundationService:
             )
 
             self.verify_backup(staging)
+
+            # Do not publish over a destination that appeared during backup.
+            if target.exists():
+                raise FoundationConflict(
+                    f"Backup destination appeared while backup was running: {target}"
+                )
+
             os.replace(staging, target)
 
             return {
                 "created": True,
                 "verified": True,
                 "backup_path": str(target),
+                "snapshot_id": snapshot["snapshot_id"],
+                "snapshot_consistency": snapshot["consistency"],
                 "manifest": manifest,
             }
 
@@ -858,18 +1200,24 @@ class FoundationService:
                 shutil.rmtree(staging, ignore_errors=True)
             raise
 
+        finally:
+            self._release_backup_write_barrier(barrier_connections)
+
     @classmethod
     def restore_backup(
         cls,
         backup_path: str | Path,
         target_root: str | Path,
     ) -> dict[str, Any]:
-        """Restore state into an empty project state directory.
+        """Restore verified state into an empty project state directory.
 
-        Existing state is never overwritten. Restore to a separate project
-        checkout or an empty .ai-dev-company directory, then validate it.
+        Existing state is never overwritten. The backup is verified before
+        copying, and the copied bytes are checked again against the verified
+        hashes to detect a backup directory changed during restore.
         """
-        verified = cls.verify_backup(backup_path)
+        source_dir = Path(backup_path).expanduser().resolve()
+        verified = cls.verify_backup(source_dir)
+
         root = Path(target_root).expanduser().resolve()
         root.mkdir(parents=True, exist_ok=True)
 
@@ -885,29 +1233,39 @@ class FoundationService:
         staging.mkdir()
 
         try:
-            source_dir = Path(backup_path).expanduser().resolve()
-
-            shutil.copy2(
-                source_dir / "company_registry.sqlite3",
-                staging / "company_registry.sqlite3",
-            )
-            shutil.copy2(
-                source_dir / "project_memory.sqlite3",
-                staging / "project_memory.sqlite3",
-            )
-
-            for name in (
+            database_names = (
                 "company_registry.sqlite3",
                 "project_memory.sqlite3",
-            ):
+            )
+
+            for name in database_names:
+                shutil.copy2(
+                    source_dir / name,
+                    staging / name,
+                )
+
                 valid, detail = _sqlite_integrity(staging / name)
                 if not valid:
                     raise FoundationIntegrityError(
                         f"Restored database failed verification ({name}): {detail}"
                     )
 
+                expected_hash = verified["database_hashes"][name]
+                if _sha256(staging / name) != expected_hash:
+                    raise FoundationIntegrityError(
+                        f"Backup changed during restore: {name}"
+                    )
+
             cls._verify_backup_registry_chain(
                 staging / "company_registry.sqlite3"
+            )
+            cls._verify_backup_identity_alignment(
+                staging / "company_registry.sqlite3",
+                staging / "project_memory.sqlite3",
+                {
+                    "company_id": verified["company_id"],
+                    "project_id": verified["project_id"],
+                },
             )
 
             if state_dir.exists():
@@ -921,6 +1279,8 @@ class FoundationService:
                 "target_state_directory": str(state_dir),
                 "company_id": verified["company_id"],
                 "project_id": verified["project_id"],
+                "snapshot_id": verified["snapshot_id"],
+                "snapshot_consistency": verified["snapshot_consistency"],
                 "overwrite_performed": False,
             }
 
