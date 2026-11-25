@@ -149,6 +149,11 @@ class MemoryStore:
             conn.close()
 
     def initialize(self) -> None:
+        """Create the schema and seed memory exactly once.
+
+        Schema creation is safe to retry. Metadata and seed creation are
+        serialized so concurrent application starts cannot duplicate seeds.
+        """
         with self._connection() as conn:
             conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript(
@@ -210,30 +215,49 @@ class MemoryStore:
                 );
                 """
             )
+
+            # BEGIN IMMEDIATE serializes metadata and bootstrap seed writes.
+            conn.execute("BEGIN IMMEDIATE")
+
             self._set_meta(conn, "project_name", "AI-Dev-Company")
             self._set_meta(conn, "schema_version", 1)
 
             seeded = conn.execute(
                 "SELECT value_json FROM project_meta WHERE key='bootstrap_seeded'"
             ).fetchone()
+
             if seeded is None:
                 now = utc_now()
+
                 for scope, kind, title, content in SEED_MEMORIES:
                     conn.execute(
                         """INSERT INTO memories
                            (scope, kind, title, content, source, tags_json,
                             created_at, updated_at)
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (scope, kind, title, content, "bootstrap", "[]", now, now),
+                        (
+                            scope, kind, title, content, "bootstrap",
+                            "[]", now, now
+                        ),
                     )
+
                 self._insert_event(
-                    conn, "system", "memory_bootstrapped", "project",
-                    "AI-Dev-Company", {"seed_memory_count": len(SEED_MEMORIES)}
+                    conn,
+                    "system",
+                    "memory_bootstrapped",
+                    "project",
+                    "AI-Dev-Company",
+                    {"seed_memory_count": len(SEED_MEMORIES)},
                 )
+
                 self._set_meta(conn, "bootstrap_seeded", True)
 
     @staticmethod
-    def _set_meta(conn: sqlite3.Connection, key: str, value: Any) -> None:
+    def _set_meta(
+        conn: sqlite3.Connection,
+        key: str,
+        value: Any,
+    ) -> None:
         conn.execute(
             """INSERT INTO project_meta(key, value_json, updated_at)
                VALUES (?, ?, ?)
@@ -303,14 +327,26 @@ class MemoryStore:
                     to_json(list(tags or [])), now, now
                 ),
             )
+
             memory_id = int(cursor.lastrowid)
+
             self._insert_event(
-                conn, source, "memory_added", "memory", str(memory_id),
-                {"scope": scope, "kind": kind, "title": title.strip()}
+                conn,
+                source,
+                "memory_added",
+                "memory",
+                str(memory_id),
+                {
+                    "scope": scope,
+                    "kind": kind,
+                    "title": title.strip(),
+                },
             )
+
             return self._memory_dict(
                 conn.execute(
-                    "SELECT * FROM memories WHERE memory_id=?", (memory_id,)
+                    "SELECT * FROM memories WHERE memory_id=?",
+                    (memory_id,),
                 ).fetchone()
             )
 
@@ -321,29 +357,37 @@ class MemoryStore:
         return item
 
     def list_memories(
-        self, scope: Optional[str] = None, limit: int = 20
+        self,
+        scope: Optional[str] = None,
+        limit: int = 20,
     ) -> list[dict[str, Any]]:
         limit = max(1, min(int(limit), 200))
+
         with self._connection() as conn:
             if scope:
                 self._validate_scope(scope)
                 rows = conn.execute(
-                    """SELECT * FROM memories WHERE scope=? AND archived=0
+                    """SELECT * FROM memories
+                       WHERE scope=? AND archived=0
                        ORDER BY memory_id DESC LIMIT ?""",
                     (scope, limit),
                 ).fetchall()
             else:
                 rows = conn.execute(
-                    """SELECT * FROM memories WHERE archived=0
+                    """SELECT * FROM memories
+                       WHERE archived=0
                        ORDER BY memory_id DESC LIMIT ?""",
                     (limit,),
                 ).fetchall()
+
         return [self._memory_dict(row) for row in rows]
 
     @staticmethod
     def _task_dict(row: sqlite3.Row) -> dict[str, Any]:
         item = dict(row)
-        item["acceptance_criteria"] = from_json(item.pop("acceptance_json"), [])
+        item["acceptance_criteria"] = from_json(
+            item.pop("acceptance_json"), []
+        )
         item["depends_on"] = from_json(item.pop("depends_on_json"), [])
         return item
 
@@ -359,43 +403,71 @@ class MemoryStore:
     ) -> dict[str, Any]:
         if not title.strip():
             raise ValueError("Task title must not be empty.")
+
         if agent_id is not None and agent_id not in AGENT_IDS:
             raise ValueError(f"Unknown agent ID: {agent_id}")
+
         if priority not in {"critical", "high", "normal", "low"}:
             raise ValueError("Priority must be critical, high, normal, or low.")
 
         dependencies = list(depends_on or [])
+
         with self._connection() as conn:
+            # Dependency validation and task creation share one write transaction.
+            conn.execute("BEGIN IMMEDIATE")
+
             for dependency in dependencies:
                 exists = conn.execute(
-                    "SELECT 1 FROM tasks WHERE task_id=?", (dependency,)
+                    "SELECT 1 FROM tasks WHERE task_id=?",
+                    (dependency,),
                 ).fetchone()
+
                 if exists is None:
-                    raise ValueError(f"Dependency task does not exist: {dependency}")
+                    raise ValueError(
+                        f"Dependency task does not exist: {dependency}"
+                    )
 
             task_id = "T-" + uuid.uuid4().hex[:10].upper()
             now = utc_now()
+
             conn.execute(
                 """INSERT INTO tasks
                    (task_id, title, description, agent_id, status, priority,
                     acceptance_json, depends_on_json, next_action, created_at, updated_at)
                    VALUES (?, ?, ?, ?, 'planned', ?, ?, ?, ?, ?, ?)""",
                 (
-                    task_id, title.strip(), description.strip(), agent_id, priority,
-                    to_json(list(acceptance_criteria or [])), to_json(dependencies),
-                    next_action.strip(), now, now
+                    task_id,
+                    title.strip(),
+                    description.strip(),
+                    agent_id,
+                    priority,
+                    to_json(list(acceptance_criteria or [])),
+                    to_json(dependencies),
+                    next_action.strip(),
+                    now,
+                    now,
                 ),
             )
+
             self._insert_event(
-                conn, "operator", "task_created", "task", task_id,
+                conn,
+                "operator",
+                "task_created",
+                "task",
+                task_id,
                 {
-                    "title": title.strip(), "agent_id": agent_id, "priority": priority,
+                    "title": title.strip(),
+                    "agent_id": agent_id,
+                    "priority": priority,
                     "depends_on": dependencies,
                 },
             )
+
             row = conn.execute(
-                "SELECT * FROM tasks WHERE task_id=?", (task_id,)
+                "SELECT * FROM tasks WHERE task_id=?",
+                (task_id,),
             ).fetchone()
+
         return self._task_dict(row)
 
     def list_tasks(
@@ -406,23 +478,35 @@ class MemoryStore:
     ) -> list[dict[str, Any]]:
         if agent_id and agent_id not in AGENT_IDS:
             raise ValueError(f"Unknown agent ID: {agent_id}")
+
         if status and status not in TASK_STATUSES:
             raise ValueError(f"Unknown task status: {status}")
+
         limit = max(1, min(int(limit), 500))
 
         query = "SELECT * FROM tasks WHERE 1=1"
         params: list[Any] = []
+
         if agent_id:
             query += " AND agent_id=?"
             params.append(agent_id)
+
         if status:
             query += " AND status=?"
             params.append(status)
-        query += " ORDER BY CASE priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END, updated_at DESC LIMIT ?"
+
+        query += (
+            " ORDER BY CASE priority "
+            "WHEN 'critical' THEN 0 "
+            "WHEN 'high' THEN 1 "
+            "WHEN 'normal' THEN 2 "
+            "ELSE 3 END, updated_at DESC LIMIT ?"
+        )
         params.append(limit)
 
         with self._connection() as conn:
             rows = conn.execute(query, params).fetchall()
+
         return [self._task_dict(row) for row in rows]
 
     def update_task(
@@ -436,88 +520,136 @@ class MemoryStore:
             raise ValueError(f"Unknown task status: {status}")
 
         with self._connection() as conn:
+            # Serialize read -> validate -> update -> event as one operation.
+            # A competing worker must observe the committed status, not stale state.
+            conn.execute("BEGIN IMMEDIATE")
+
             row = conn.execute(
-                "SELECT * FROM tasks WHERE task_id=?", (task_id,)
+                "SELECT * FROM tasks WHERE task_id=?",
+                (task_id,),
             ).fetchone()
+
             if row is None:
                 raise ValueError(f"Task not found: {task_id}")
 
             old_status = row["status"]
             new_status = status or old_status
-            if new_status != old_status and new_status not in ALLOWED_TRANSITIONS[old_status]:
+
+            if (
+                new_status != old_status
+                and new_status not in ALLOWED_TRANSITIONS[old_status]
+            ):
                 raise ValueError(
                     f"Invalid state transition: {old_status} -> {new_status}. "
                     f"Allowed: {sorted(ALLOWED_TRANSITIONS[old_status])}"
                 )
 
             new_next_action = (
-                row["next_action"] if next_action is None else next_action.strip()
+                row["next_action"]
+                if next_action is None
+                else next_action.strip()
             )
+
             conn.execute(
-                """UPDATE tasks SET status=?, next_action=?, updated_at=?
+                """UPDATE tasks
+                   SET status=?, next_action=?, updated_at=?
                    WHERE task_id=?""",
                 (new_status, new_next_action, utc_now(), task_id),
             )
+
             self._insert_event(
-                conn, "operator", "task_updated", "task", task_id,
+                conn,
+                "operator",
+                "task_updated",
+                "task",
+                task_id,
                 {
-                    "old_status": old_status, "new_status": new_status,
-                    "note": note, "next_action": new_next_action,
+                    "old_status": old_status,
+                    "new_status": new_status,
+                    "note": note,
+                    "next_action": new_next_action,
                 },
             )
+
             updated = conn.execute(
-                "SELECT * FROM tasks WHERE task_id=?", (task_id,)
+                "SELECT * FROM tasks WHERE task_id=?",
+                (task_id,),
             ).fetchone()
+
         return self._task_dict(updated)
 
     def list_events(
-        self, limit: int = 20, actor: Optional[str] = None
+        self,
+        limit: int = 20,
+        actor: Optional[str] = None,
     ) -> list[dict[str, Any]]:
         limit = max(1, min(int(limit), 200))
+
         with self._connection() as conn:
             if actor:
                 rows = conn.execute(
-                    "SELECT * FROM events WHERE actor=? ORDER BY event_id DESC LIMIT ?",
+                    """SELECT * FROM events
+                       WHERE actor=?
+                       ORDER BY event_id DESC LIMIT ?""",
                     (actor, limit),
                 ).fetchall()
             else:
                 rows = conn.execute(
-                    "SELECT * FROM events ORDER BY event_id DESC LIMIT ?",
+                    """SELECT * FROM events
+                       ORDER BY event_id DESC LIMIT ?""",
                     (limit,),
                 ).fetchall()
+
         result = []
+
         for row in rows:
             item = dict(row)
             item["payload"] = from_json(item.pop("payload_json"), {})
             result.append(item)
+
         return result
 
-    def summary(self) -> dict[str, Any]:
-        with self._connection() as conn:
-            meta_rows = conn.execute(
-                "SELECT key, value_json FROM project_meta"
-            ).fetchall()
-            meta = {row["key"]: from_json(row["value_json"]) for row in meta_rows}
+    def _summary_from_connection(
+        self,
+        conn: sqlite3.Connection,
+    ) -> dict[str, Any]:
+        """Build a summary using the caller's existing database snapshot."""
+        meta_rows = conn.execute(
+            "SELECT key, value_json FROM project_meta"
+        ).fetchall()
 
-            count_rows = conn.execute(
-                "SELECT status, COUNT(*) AS total FROM tasks GROUP BY status"
-            ).fetchall()
-            counts = {row["status"]: row["total"] for row in count_rows}
+        meta = {
+            row["key"]: from_json(row["value_json"])
+            for row in meta_rows
+        }
 
-            task_rows = conn.execute(
-                """SELECT * FROM tasks
-                   WHERE status NOT IN ('done','deployed','cancelled')
-                   ORDER BY updated_at DESC LIMIT 20"""
-            ).fetchall()
-            memory_rows = conn.execute(
-                """SELECT * FROM memories WHERE archived=0
-                   ORDER BY memory_id DESC LIMIT 12"""
-            ).fetchall()
-            event_rows = conn.execute(
-                "SELECT * FROM events ORDER BY event_id DESC LIMIT 15"
-            ).fetchall()
+        count_rows = conn.execute(
+            "SELECT status, COUNT(*) AS total FROM tasks GROUP BY status"
+        ).fetchall()
+
+        counts = {
+            row["status"]: row["total"]
+            for row in count_rows
+        }
+
+        task_rows = conn.execute(
+            """SELECT * FROM tasks
+               WHERE status NOT IN ('done','deployed','cancelled')
+               ORDER BY updated_at DESC LIMIT 20"""
+        ).fetchall()
+
+        memory_rows = conn.execute(
+            """SELECT * FROM memories
+               WHERE archived=0
+               ORDER BY memory_id DESC LIMIT 12"""
+        ).fetchall()
+
+        event_rows = conn.execute(
+            "SELECT * FROM events ORDER BY event_id DESC LIMIT 15"
+        ).fetchall()
 
         events = []
+
         for row in event_rows:
             item = dict(row)
             item["payload"] = from_json(item.pop("payload_json"), {})
@@ -529,40 +661,78 @@ class MemoryStore:
             "memory_database": str(self.db_path),
             "meta": meta,
             "task_counts_by_status": counts,
-            "open_tasks": [self._task_dict(row) for row in task_rows],
-            "recent_memories": [self._memory_dict(row) for row in memory_rows],
+            "open_tasks": [
+                self._task_dict(row) for row in task_rows
+            ],
+            "recent_memories": [
+                self._memory_dict(row) for row in memory_rows
+            ],
             "recent_events": events,
         }
 
-    def save_checkpoint(self, name: str, note: str = "") -> dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
+        with self._connection() as conn:
+            # Keep all summary queries on one consistent read snapshot.
+            conn.execute("BEGIN")
+            return self._summary_from_connection(conn)
+
+    def save_checkpoint(
+        self,
+        name: str,
+        note: str = "",
+    ) -> dict[str, Any]:
         if not name.strip():
             raise ValueError("Checkpoint name must not be empty.")
-        snapshot = {"note": note, "project_summary": self.summary()}
+
         with self._connection() as conn:
+            # Lock writers before reading the summary. The checkpoint record,
+            # snapshot and event are committed or rolled back together.
+            conn.execute("BEGIN IMMEDIATE")
+
+            snapshot = {
+                "note": note,
+                "project_summary": self._summary_from_connection(conn),
+            }
+
+            created_at = utc_now()
+
             cursor = conn.execute(
                 """INSERT INTO checkpoints(name, payload_json, created_at)
                    VALUES (?, ?, ?)""",
-                (name.strip(), to_json(snapshot), utc_now()),
+                (name.strip(), to_json(snapshot), created_at),
             )
+
             checkpoint_id = int(cursor.lastrowid)
+
             self._insert_event(
-                conn, "runtime", "checkpoint_saved", "checkpoint",
-                str(checkpoint_id), {"name": name.strip(), "note": note}
+                conn,
+                "runtime",
+                "checkpoint_saved",
+                "checkpoint",
+                str(checkpoint_id),
+                {
+                    "name": name.strip(),
+                    "note": note,
+                },
             )
+
             return {
                 "checkpoint_id": checkpoint_id,
                 "name": name.strip(),
-                "created_at": utc_now(),
+                "created_at": created_at,
                 "database": str(self.db_path),
             }
 
     def latest_checkpoint(self) -> Optional[dict[str, Any]]:
         with self._connection() as conn:
             row = conn.execute(
-                "SELECT * FROM checkpoints ORDER BY checkpoint_id DESC LIMIT 1"
+                """SELECT * FROM checkpoints
+                   ORDER BY checkpoint_id DESC LIMIT 1"""
             ).fetchone()
+
         if row is None:
             return None
+
         item = dict(row)
         item["payload"] = from_json(item.pop("payload_json"), {})
         return item
