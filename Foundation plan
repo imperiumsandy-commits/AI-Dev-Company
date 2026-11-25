@@ -1,12 +1,12 @@
 
 # AI-Dev-Company — Foundation Architecture and Engineering Plan
 
-**Architecture Baseline:** 0.3  
+**Architecture Baseline:** 0.4  
 **Repository:** imperiumsandy-commits/AI-Dev-Company  
 **Primary Branch:** main  
 **Review Date:** 2026-11-25  
-**Baseline Commit Reviewed:** 18a96acee5ce35b2d6404e3af1a4caf9c4c2063b  
-**Revision Scope:** Consolidated the engineering gaps from plan update into this canonical specification and reconciled implementation status against main.  
+**Baseline Commit Reviewed:** d6c3cb9890794c4233d3c94f6131f5f96a47b1d6  
+**Revision Scope:** Refreshed the canonical baseline against the latest main commit; reconciled the L0 token-budget implementation and the latest CI compile failure; retained the consolidated architecture and execution contracts.  
 **Document Type:** Engineering Architecture and Execution Specification  
 **Implementation Authority:** Actual GitHub source code and automated verification
 
@@ -302,7 +302,7 @@ Runtime readiness requires a valid specification, available tools, authorized pe
 
 # 5. Current Repository Baseline
 
-This section records observed implementation, not planned capability. It was reconciled against the main branch commit 18a96acee5ce35b2d6404e3af1a4caf9c4c2063b on 2026-11-25. A file's presence is not proof that its capability is operational or production-ready.
+This section records observed implementation, not planned capability. It was reconciled against the main branch commit d6c3cb9890794c4233d3c94f6131f5f96a47b1d6 on 2026-11-25. A file's presence is not proof that its capability is operational or production-ready.
 
 ## 5.1 Registry
 
@@ -391,19 +391,33 @@ business-analyst-pm-batch-01-source.md contains specialist source material and i
 
 ## 5.7 Latest Observed CI Verification
 
-The latest observed Actions run at this review was:
+The latest completed Actions run reviewed for this baseline was:
 
 - Workflow: AI-Dev-Company CI
-- Run: 45603086170
-- Commit: 18a96acee5ce35b2d6404e3af1a4caf9c4c2063b
-- Result: failure
-- Regression result: 171 passed, 10 failed
+- Run: 45608333827
+- Commit: d6c3cb9890794c4233d3c94f6131f5f96a47b1d6
+- Result: failure during the `Compile automated tests` step
+- Failure class: Python syntax error in the newly added regression-test file
 
-All 10 failures were caused by the L0 context budget gate: estimated required context was 5,087 tokens while the available budget was 4,800 tokens. The failures affected L0 policy/context tests and the L0 CLI packet-writing test. Package compilation steps succeeded; the complete regression suite did not.
+The latest run did not reach pytest. The file `tests/test_l0_context_budget_defaults.py` begins with Markdown presentation text (a heading, a complete-path label, and a fenced-code marker) before the Python imports. The Python compiler therefore raises a syntax error at the Markdown text. This is a test-file formatting/copying error, not evidence that the L0 budget implementation failed. No pass/fail test count is available from this run because the test suite did not start.
 
-Source: https://github.com/imperiumsandy-commits/AI-Dev-Company/actions/runs/45603086170
+The preceding run 45608205707 on commit b5d4e3b1c51242b3698818e803bdbb9e01aa5cda completed successfully before the new regression-test file was added. It is not a green verification of the current latest commit.
 
-This is an open engineering blocker. Required identity and operating policies must not be silently truncated to force a green run. The budget, packet contents, estimator assumptions, and tests must be corrected together, and the resulting full regression run must pass before the affected phase is accepted.
+The current L0 compiler source sets:
+
+- `DEFAULT_MAX_CONTEXT_TOKENS = 8000`
+- `DEFAULT_RESERVED_OUTPUT_TOKENS = 1600`
+- Available context budget: `6400` tokens
+
+The earlier run 45603086170 recorded 5,087 estimated required tokens against 4,800 available and reported 10 L0 budget-related failures. The new 6,400-token available default supersedes that old configured limit. If the earlier 5,087-token estimate is unchanged, it would leave 1,313 tokens of headroom; however, the updated regression test and complete suite must run successfully before this is accepted as verified behaviour.
+
+Actions evidence:
+
+- Latest failure: https://github.com/imperiumsandy-commits/AI-Dev-Company/actions/runs/45608333827
+- Preceding successful run: https://github.com/imperiumsandy-commits/AI-Dev-Company/actions/runs/45608205707
+- Earlier L0 budget failure: https://github.com/imperiumsandy-commits/AI-Dev-Company/actions/runs/45603086170
+
+The current main branch is not yet CI-verified. Do not report the Foundation regression suite as green until a full Actions run on the corrected latest source compiles and passes all tests.
 
 # 6. Canonical Component Ownership
 
@@ -590,6 +604,10 @@ The token manager must:
 8. Report which information was excluded.
 
 Token budgets must be configurable by company, project, provider, and task type.
+
+The current L0 compiler defaults are 8,000 maximum context tokens and 1,600 reserved output tokens, leaving 6,400 available context tokens. These are L0 compiler defaults, not a universal guarantee for every provider or model; the effective request budget must also respect the selected provider/model capability and the task policy.
+
+For the canonical default L0 packet, regression acceptance must verify that mandatory company context fits without silent truncation and preserves at least 20% headroom relative to the estimated mandatory context. The test must exercise the real compiler output and its reported budget fields. A passing arithmetic assertion alone does not replace the full L0 policy/context and CLI regression tests.
 
 ## 8.4 Context trust, provenance and retrieval security
 
@@ -1086,15 +1104,16 @@ Objectives:
 - Remove obsolete or contradictory operating instructions.
 - Maintain one authoritative Foundation plan.
 - Keep the GitHub-first, owner-controlled delivery workflow.
-- Resolve the observed L0 token-budget regression without truncating mandatory company policy.
+- Verify the corrected L0 default budget (8,000 maximum / 1,600 reserved / 6,400 available) against the real compiler output without truncating mandatory company policy.
 - Establish repeatable CI and source-state evidence.
 
 Exit criteria:
 
 - Current repository baseline accurately describes implemented and missing capabilities.
 - No contradictory project identity or workflow instructions.
-- L0 context and CLI tests pass with deterministic, justified budget behaviour.
-- Complete CI regression suite passes.
+- L0 context, CLI, and default-budget regression tests pass with deterministic, justified budget behaviour and the required headroom.
+- Test files compile as valid source (no Markdown wrapper text inside Python files).
+- Complete CI regression suite passes on the recorded current commit.
 - The verified commit and Actions run are recorded.
 
 ## Phase 0.5 — Cross-Cutting Contracts and Tenant Architecture
@@ -1362,8 +1381,9 @@ The following status reflects the main-branch review recorded in Section 5. It m
 - Local SQLite memory supports project/specialist records, tasks, events, and checkpoints, but memory is not cloud-shared across sessions or workers.
 - The integrated Foundation service coordinates registry and memory operations and backups, but two SQLite databases remain separate and there is no distributed application transaction.
 - L0, L1, and L2 context compilers and CLIs exist. L3 and L4 are not complete.
+- The L0 compiler default budget is now 8,000 maximum context tokens with 1,600 reserved for output, leaving 6,400 available. The earlier measured estimate was 5,087 tokens against the former 4,800 available limit; the current estimate must be confirmed by the corrected automated regression test.
 - Repository scanning, Git history, dependency mapping, impact analysis, and incremental scanning components exist; metadata cache reuse is not tamper-proof verification.
-- Current CI run 45603086170 is red: 171 passed and 10 failed due to L0 required-context budget exhaustion (5,087 estimated versus 4,800 available).
+- Latest CI run 45608333827 is red because `tests/test_l0_context_budget_defaults.py` contains Markdown heading/path/code-fence text ahead of its Python code. Test compilation stopped before pytest, so this run provides no current regression count. The earlier 10 L0 budget failures in run 45603086170 are historical evidence against the former 4,800-token available default, not the latest failure cause.
 
 ## 19.2 Capabilities not yet established
 
@@ -1395,20 +1415,23 @@ A risk cannot be closed by documentation alone when enforcement or runtime behav
 
 The immediate priority is to close the reliability and contract gaps in the existing Foundation, not to create disconnected modules.
 
+The current blocking action is a source-format correction to the newly added L0 budget regression test, followed by full automated verification. The L0 default budget values have already been raised in source; do not repeatedly change the budget or weaken required-context assertions without fresh test evidence.
+
 The order is:
 
-1. **Resolve the current CI blocker:** fix L0 budget planning so all required identity and operating policies fit safely; do not hide the failure by silently truncating required content or merely weakening tests.
-2. **Restore a verified baseline:** rerun the complete regression suite and record the passing commit, test report, and Actions evidence; keep the baseline red until this is proven.
-3. **Freeze cross-cutting contracts:** define versioned tenant/workspace identity, authorization scope, task/handoff, model request/response, tool request, approval, artifact, event, and audit schemas.
-4. **Harden Registry and Repository Intelligence:** preserve the canonical company/project/eight-agent catalog; add tenant/workspace architecture without duplicate identity stores; strengthen snapshot and strict-cache evidence.
-5. **Integrate persistent memory:** define tenant-scoped ownership, versioned decisions/events, concurrency, retention, idempotency, and verified migration/restore while preserving existing SQLite data.
-6. **Complete Context Intelligence:** stabilize existing L0-L2, implement L3/L4, add provenance/trust classification, safe retrieval, provider-aware budgets, and reproducible GPT handoff packets.
-7. **Complete audit evidence:** bind test/security/quality results to source commits, task attempts, context digests, toolchains, policies, and approvals.
-8. **Enforce governance and safe execution:** tenant authorization, permission manager, approval lifecycle, tool allowlists, sandbox, scoped secrets, resource limits, and emergency stop.
-9. **Implement measurable Quality and independent verification:** domain-specific evaluation, security gates, reproducible evidence, and non-self-approval rules.
-10. **Build Model Gateway and workflow runtime:** provider capability adapters, policy-compliant routing, task queue, handoffs, retries, leases, concurrency, cancellation, and recovery.
-11. **Pilot Business Analyst / PM internally:** prove the real end-to-end Company OS workflow before activating the remaining seven specialists.
-12. **Activate the remaining specialists and deliver the Company Platform:** customer onboarding, isolated workspaces, approvals, usage/billing, delivery, support, retention, and offboarding.
+1. **Correct the CI compile blocker:** replace `tests/test_l0_context_budget_defaults.py` with pure Python source only. Do not include Markdown headings, file-path labels, or code-fence markers inside the file.
+2. **Verify the L0 budget change:** run L0 company-context, CLI, and default-budget headroom regression tests against the actual compiler; required identity and operating policies must remain present and must not be silently truncated.
+3. **Restore a verified baseline:** run the complete CI suite on the corrected main commit and record the passing commit, test count, and Actions evidence. Until then, main remains CI-unverified.
+4. **Freeze cross-cutting contracts:** define versioned tenant/workspace identity, authorization scope, task/handoff, model request/response, tool request, approval, artifact, event, and audit schemas.
+5. **Harden Registry and Repository Intelligence:** preserve the canonical company/project/eight-agent catalog; add tenant/workspace architecture without duplicate identity stores; strengthen snapshot and strict-cache evidence.
+6. **Integrate persistent memory:** define tenant-scoped ownership, versioned decisions/events, concurrency, retention, idempotency, and verified migration/restore while preserving existing SQLite data.
+7. **Complete Context Intelligence:** stabilize existing L0-L2, implement L3/L4, add provenance/trust classification, safe retrieval, provider-aware budgets, and reproducible GPT handoff packets.
+8. **Complete audit evidence:** bind test/security/quality results to source commits, task attempts, context digests, toolchains, policies, and approvals.
+9. **Enforce governance and safe execution:** tenant authorization, permission manager, approval lifecycle, tool allowlists, sandbox, scoped secrets, resource limits, and emergency stop.
+10. **Implement measurable Quality and independent verification:** domain-specific evaluation, security gates, reproducible evidence, and non-self-approval rules.
+11. **Build Model Gateway and workflow runtime:** provider capability adapters, policy-compliant routing, task queue, handoffs, retries, leases, concurrency, cancellation, and recovery.
+12. **Pilot Business Analyst / PM internally:** prove the real end-to-end Company OS workflow before activating the remaining seven specialists.
+13. **Activate the remaining specialists and deliver the Company Platform:** customer onboarding, isolated workspaces, approvals, usage/billing, delivery, support, retention, and offboarding.
 
 No later phase is complete merely because planned files exist. Each phase must pass the acceptance criteria in Sections 16 and 17. The actual repository and CI evidence remain authoritative over estimates, diagrams, and documentation status.
 
@@ -1427,6 +1450,8 @@ Maintain independent specialist ownership, preserve project knowledge, verify al
 | Baseline | Date | Change |
 |---|---|---|
 | 0.2 | 2026-11-09 | Previous Foundation Architecture and Engineering Plan. |
-| 0.3 | 2026-11-25 | Consolidated the gaps documented in plan update into this canonical plan; added tenant/customer boundaries, execution and handoff contracts, provider gateway semantics, context provenance and prompt-injection controls, secure tool execution, measurable quality gates, approval lifecycle, observability and disaster recovery; reconciled repository status against main commit 18a96acee5ce35b2d6404e3af1a4caf9c4c2063b and recorded the observed CI blocker. |
+| 0.3 | 2026-11-25 | Consolidated the gaps documented in plan update into this canonical plan; added tenant/customer boundaries, execution and handoff contracts, provider gateway semantics, context provenance and prompt-injection controls, secure tool execution, measurable quality gates, approval lifecycle, observability and disaster recovery. |
+
+| 0.4 | 2026-11-25 | Reconciled the canonical plan against main commit d6c3cb9890794c4233d3c94f6131f5f96a47b1d6; updated L0 budget defaults to 8,000/1,600/6,400; recorded that the latest CI failure is a Markdown-in-Python test compilation error and revised Phase 0 and immediate priorities to require a corrected test file and a fully green regression run. |
 
 The file plan update is retained as historical review input. This Foundation plan is the canonical architecture and engineering baseline; future approved changes must be integrated here rather than leaving competing master plans.
