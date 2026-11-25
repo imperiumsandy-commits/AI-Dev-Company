@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 
-POLICY_CATALOG_VERSION = "1.0.0"
+POLICY_CATALOG_VERSION = "1.1.0"
 POLICY_CATALOG_SOURCE = "company_os/context/company_policies.py"
 
 
@@ -57,11 +57,12 @@ COMPANY_OPERATING_POLICIES: tuple[OperatingPolicy, ...] = (
             "their domain reasoning, ownership, permissions, or independent "
             "verification into one generic agent."
         ),
-        enforcement_state="canonical_registry_catalog",
+        enforcement_state="canonical_registry_catalog_and_validated_specs",
         limitation=(
-            "The registry proves specialist identities only. Registration is "
-            "not executable activation; each specialist still needs its own "
-            "specification, runtime, evaluation, and domain tests."
+            "The registry proves specialist identities and the manifest loader "
+            "validates their specifications. Registration and specification "
+            "readiness are not executable activation; shared runtime and "
+            "domain evaluation are still pending."
         ),
     ),
     OperatingPolicy(
@@ -80,6 +81,42 @@ COMPANY_OPERATING_POLICIES: tuple[OperatingPolicy, ...] = (
             "Current CI compiles the Python packages and runs pytest. It does "
             "not yet provide independent AI review, full security scanning, "
             "or production acceptance evidence."
+        ),
+    ),
+    OperatingPolicy(
+        policy_id="engineering.first_pass_excellence",
+        title="Deliver first-pass, production-minded, non-generic engineering",
+        domain="engineering_quality",
+        priority=35,
+        rule=(
+            "Before changing code, inspect the actual current main-branch source, "
+            "affected modules, callers, public contracts, dependencies, tests, "
+            "configuration, workflows, and relevant documentation. Define "
+            "acceptance criteria and compatibility constraints before editing. "
+            "Deliver one consolidated end-to-end feature batch containing all "
+            "required source, tests, contracts, migrations, failure paths, and "
+            "documentation changes. Do not split a known complete feature into "
+            "avoidable partial deliveries that force repeated replacement of "
+            "the same file. Minimize file churn without omitting required work. "
+            "Design each specialist and component for its actual domain rather "
+            "than generic demos, prompt templates, placeholder integrations, "
+            "fake functionality, dead documentation, or unused abstractions. "
+            "Evaluate correctness, security, privacy, data integrity, "
+            "compatibility, concurrency, recovery, observability, performance, "
+            "accessibility, and operational safety wherever relevant. Derive "
+            "tests from acceptance criteria and risk, including negative, "
+            "boundary, failure-cleanup, and concurrency cases where applicable. "
+            "Run targeted tests and the complete available regression suite. "
+            "Inspect the exact commit's CI result before declaring completion. "
+            "Report verified evidence and remaining limitations honestly."
+        ),
+        enforcement_state="documented_l0_company_policy_and_regression_tests",
+        limitation=(
+            "This policy is delivered into canonical L0 context and regression "
+            "tests. The repository does not yet have a complete independent "
+            "AI review/refinement engine or automated gates for every quality "
+            "dimension. CI and policy presence do not alone prove production "
+            "readiness."
         ),
     ),
     OperatingPolicy(
@@ -112,11 +149,11 @@ COMPANY_OPERATING_POLICIES: tuple[OperatingPolicy, ...] = (
             "files, logs, audit payloads, or compiled context packets. Use "
             "authorized secret references and least-privilege access."
         ),
-        enforcement_state="partial_registry_guard",
+        enforcement_state="partial_registry_guard_and_context_preflight",
         limitation=(
-            "The registry rejects known secret-like configuration patterns, "
-            "but heuristic scanning is not exhaustive protection for every "
-            "unknown secret format or every future log path."
+            "Known secret-like patterns are rejected by registry validation "
+            "and L1 context preflight. Heuristic detection is not exhaustive "
+            "protection for every unknown secret format or future data path."
         ),
     ),
     OperatingPolicy(
@@ -145,17 +182,17 @@ COMPANY_OPERATING_POLICIES: tuple[OperatingPolicy, ...] = (
         priority=70,
         rule=(
             "Distinguish documented, implemented, tested, registered, "
-            "runtime-ready, evaluated, and active states. A registry row or a "
-            "loaded instruction file does not prove that an AI agent is being "
-            "invoked or can execute work. Do not claim provider execution, "
-            "cloud-shared memory, or autonomous operation until implemented "
-            "and verified."
+            "specification-ready, runtime-ready, evaluated, and active states. "
+            "A registry row or loaded instruction file does not prove that an "
+            "AI agent is being invoked or can execute work. Do not claim "
+            "provider execution, cloud-shared memory, or autonomous operation "
+            "until implemented and verified."
         ),
-        enforcement_state="context_disclosure_and_registry_lifecycle",
+        enforcement_state="context_disclosure_registry_lifecycle_and_spec_validation",
         limitation=(
-            "The current repository contains a memory prototype and a "
-            "specification loader, not a complete agent executor or provider "
-            "gateway."
+            "The current repository contains a local memory prototype, "
+            "validated specialist specifications and context compilers, not "
+            "a complete agent executor or provider gateway."
         ),
     ),
     OperatingPolicy(
@@ -216,9 +253,20 @@ def validate_policy_catalog() -> None:
             policy.enforcement_state,
             policy.limitation,
         )
-        if any(not isinstance(value, str) or not value.strip() for value in required_text):
-            raise ValueError("Operating policy identity, rule, and limitation fields must not be empty.")
-        if isinstance(policy.priority, bool) or not isinstance(policy.priority, int):
+        if any(
+            not isinstance(value, str) or not value.strip()
+            for value in required_text
+        ):
+            raise ValueError(
+                "Operating policy identity, rule, and limitation fields "
+                "must not be empty."
+            )
+        if isinstance(policy.priority, bool) or not isinstance(
+            policy.priority,
+            int,
+        ):
             raise ValueError("Operating policy priority must be an integer.")
         if policy.priority < 1:
-            raise ValueError("Operating policy priority must be a positive integer.")
+            raise ValueError(
+                "Operating policy priority must be a positive integer."
+            )
